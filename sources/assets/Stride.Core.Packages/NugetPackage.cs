@@ -3,17 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using NuGet;
 using Stride.Core;
+using System.Linq;
 using NuGet.Packaging.Core;
-using NuGet.ProjectManagement;
-using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using Stride.Core.Annotations;
 using Constants = NuGet.ProjectManagement.Constants;
-using IPackageMetadata = NuGet.Packaging.IPackageMetadata;
 
 namespace Stride.Core.Packages
 {
@@ -181,6 +177,11 @@ namespace Stride.Core.Packages
         /// The number of dependency sets.
         /// </summary>
         public int DependencySetsCount => DependencySets?.Count() ?? 0;
+
+        /// <summary>
+        /// List of supported target frameworks.
+        /// </summary>
+        public IEnumerable<string> TargetFrameworks => packageMetadata.DependencySets.Select(x => x.TargetFramework.GetShortFolderName());
 
         /// <summary>
         /// Computed the list of dependencies of this package.
