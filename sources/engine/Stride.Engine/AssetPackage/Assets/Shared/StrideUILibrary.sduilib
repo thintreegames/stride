@@ -21,6 +21,7 @@ PublicUIElements:
     eef44bd6-bd2d-4abe-8335-0971d5d83b10: EditText
     f23d4157-8437-4285-845d-5cab68bca82a: ScrollBar
     fcd540ef-6f9e-4cab-b24d-ba1533b0fdb9: Slider
+    192C0F0F-4FAE-44E4-80EF-C5925FAB7D7D: HtmlControl
 Hierarchy:
     RootParts:
         - !Button ref!! e8985e3a-8d82-40a6-adb1-76619eb19cd8
@@ -39,6 +40,7 @@ Hierarchy:
         - !Grid ref!! 72d195ac-472a-4f9b-8540-9f4f7d5fc53e
         - !StackPanel ref!! 97a0fc3a-e627-4122-b585-d33a6a7cd785
         - !UniformGrid ref!! a89f94fa-840f-48d4-9b26-418e9e4a2358
+        - !HtmlControl ref!! 192C0F0F-4FAE-44E4-80EF-C5925FAB7D7D
     Parts:
         -   UIElement: !ToggleButton
                 Id: 1dfd7e9f-ab5a-4849-b6e3-1c50b0974f5f
@@ -255,3 +257,10 @@ Hierarchy:
                     Sheet: 1be3340c-b797-4557-bff7-d9be92dfdb42:StrideUIDesigns
                     CurrentFrame: 8
                 TickOffset: 13.0
+        -   UIElement: !HtmlControl
+                Id: 192C0F0F-4FAE-44E4-80EF-C5925FAB7D7D
+                DependencyProperties: {}
+                BackgroundColor: {R: 0, G: 0, B: 0, A: 0}
+                Margin: {}
+                Name: HtmlControl
+                Url: www.google.com

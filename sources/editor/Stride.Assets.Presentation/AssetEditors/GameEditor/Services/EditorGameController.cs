@@ -26,6 +26,7 @@ using Stride.Engine.Processors;
 using Stride.Games;
 using Stride.Shaders.Compiler;
 using Point = System.Windows.Point;
+using Stride.UI;
 
 namespace Stride.Assets.Presentation.AssetEditors.GameEditor.Services
 {
@@ -409,6 +410,9 @@ namespace Stride.Assets.Presentation.AssetEditors.GameEditor.Services
             serviceRegistry = new EditorGameServiceRegistry();
             InitializeServices(serviceRegistry);
             Game.RegisterServices(serviceRegistry);
+
+            var builderService = Asset.ServiceProvider.Get<GameStudioBuilderService>();
+            Game.Services.AddService<IUltralightFileSystem>(new EditorUltralightFileSystem() { SessionView = builderService.SessionViewModel });
 
             // Notify game start
             gameStartedTaskSource.SetResult(true);
