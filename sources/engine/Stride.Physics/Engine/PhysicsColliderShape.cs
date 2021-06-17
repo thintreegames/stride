@@ -47,7 +47,7 @@ namespace Stride.Physics
             return new PhysicsColliderShape(descriptions);
         }
 
-        internal static ColliderShape Compose(IReadOnlyList<IAssetColliderShapeDesc> descs)
+        internal static ColliderShape Compose(Simulation simulation, ContentManager content, IReadOnlyList<IAssetColliderShapeDesc> descs)
         {
             if (descs == null)
             {
@@ -58,33 +58,20 @@ namespace Stride.Physics
 
             if (descs.Count == 1) //single shape case
             {
-                res = CreateShape(descs[0]);
+                res = CreateShape(simulation, content, descs[0]);
                 if (res == null) return null;
-                res.IsPartOfAsset = true;
-            }
-            else if (descs.Count > 1) //need a compound shape in this case
-            {
-                var compound = new CompoundColliderShape();
-                foreach (var desc in descs)
-                {
-                    var subShape = CreateShape(desc);
-                    if (subShape == null) continue;
-                    compound.AddChildShape(subShape);
-                }
-                res = compound;
-                res.IsPartOfAsset = true;
             }
 
             return res;
         }
 
-        internal static ColliderShape CreateShape(IColliderShapeDesc desc)
+        internal static ColliderShape CreateShape(Simulation simulation, ContentManager content, IColliderShapeDesc desc)
         {
             if (desc == null)
                 return null;
 
-            ColliderShape shape = desc.CreateShape();
-            
+            ColliderShape shape = desc.CreateShape(simulation, content);
+
             if (shape == null) return null;
 
             //shape.UpdateLocalTransformations();
@@ -96,9 +83,6 @@ namespace Stride.Physics
         public void Dispose()
         {
             if (Shape == null) return;
-
-            var compound = Shape.Parent;
-            compound?.RemoveChildShape(Shape);
 
             Shape.Dispose();
             Shape = null;

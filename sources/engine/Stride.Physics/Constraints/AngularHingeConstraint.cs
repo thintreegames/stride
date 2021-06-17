@@ -3,9 +3,9 @@ using Stride.Core.Mathematics;
 
 namespace Stride.Physics.Constraints
 {
-    [DataContract("HingeConstraint")]
-    [Display("Hinge Constraint")]
-    public class HingeConstraint : PhysicsConstraintComponent
+    [DataContract("AngularHingeConstraint")]
+    [Display("Angular Hinge Constraint")]
+    public class AngularHingeConstraint : PhysicsConstraintComponent
     {
         public RigidbodyComponent BodyA { get; set; }
         public RigidbodyComponent BodyB { get; set; }
@@ -32,36 +32,6 @@ namespace Stride.Physics.Constraints
             set
             {
                 localHingeAxisB = value;
-
-                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
-                {
-                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
-                }
-            }
-        }
-
-        private Vector3 localOffsetA;
-        public Vector3 LocalOffsetA
-        {
-            get => localOffsetA;
-            set
-            {
-                localOffsetA = value;
-
-                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
-                {
-                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
-                }
-            }
-        }
-
-        private Vector3 localOffsetB;
-        public Vector3 LocalOffsetB
-        {
-            get => localOffsetB;
-            set
-            {
-                localOffsetB = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -107,12 +77,10 @@ namespace Stride.Physics.Constraints
             constraintHandle = Simulation.AddConstraint(BodyA.BodyHandle, BodyB.BodyHandle, CreateDescription());
         }
 
-        private BepuPhysics.Constraints.Hinge CreateDescription()
+        private BepuPhysics.Constraints.AngularHinge CreateDescription()
         {
-            return new BepuPhysics.Constraints.Hinge()
+            return new BepuPhysics.Constraints.AngularHinge()
             {
-                LocalOffsetA = new System.Numerics.Vector3(LocalOffsetA.X, LocalOffsetA.Y, LocalOffsetA.Z),
-                LocalOffsetB = new System.Numerics.Vector3(LocalOffsetB.X, LocalOffsetB.Y, LocalOffsetB.Z),
                 LocalHingeAxisA = new System.Numerics.Vector3(LocalHingeAxisA.X, LocalHingeAxisA.Y, LocalHingeAxisA.Z),
                 LocalHingeAxisB = new System.Numerics.Vector3(LocalHingeAxisB.X, LocalHingeAxisB.Y, LocalHingeAxisB.Z),
                 SpringSettings = new BepuPhysics.Constraints.SpringSettings(SpringFrequency, SpringDampingRatio),

@@ -3,20 +3,21 @@ using Stride.Core.Mathematics;
 
 namespace Stride.Physics.Constraints
 {
-    [DataContract("HingeConstraint")]
-    [Display("Hinge Constraint")]
-    public class HingeConstraint : PhysicsConstraintComponent
+    [DataContract("DistanceLimitConstraint")]
+    [Display("Distance Limit Constraint")]
+    public class DistanceLimitConstraint : PhysicsConstraintComponent
     {
         public RigidbodyComponent BodyA { get; set; }
         public RigidbodyComponent BodyB { get; set; }
 
-        private Vector3 localHingeAxisA;
-        public Vector3 LocalHingeAxisA
+
+        private float minimumDistance = 1;
+        public float MinimumDistance
         {
-            get => localHingeAxisA;
+            get => minimumDistance;
             set
             {
-                localHingeAxisA = value;
+                minimumDistance = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -25,13 +26,13 @@ namespace Stride.Physics.Constraints
             }
         }
 
-        private Vector3 localHingeAxisB;
-        public Vector3 LocalHingeAxisB
+        private float maximumDistance = 0;
+        public float MaximumDistance
         {
-            get => localHingeAxisB;
+            get => maximumDistance;
             set
             {
-                localHingeAxisB = value;
+                maximumDistance = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -107,14 +108,14 @@ namespace Stride.Physics.Constraints
             constraintHandle = Simulation.AddConstraint(BodyA.BodyHandle, BodyB.BodyHandle, CreateDescription());
         }
 
-        private BepuPhysics.Constraints.Hinge CreateDescription()
+        private BepuPhysics.Constraints.DistanceLimit CreateDescription()
         {
-            return new BepuPhysics.Constraints.Hinge()
+            return new BepuPhysics.Constraints.DistanceLimit
             {
+                MinimumDistance = MinimumDistance,
+                MaximumDistance = MaximumDistance,
                 LocalOffsetA = new System.Numerics.Vector3(LocalOffsetA.X, LocalOffsetA.Y, LocalOffsetA.Z),
                 LocalOffsetB = new System.Numerics.Vector3(LocalOffsetB.X, LocalOffsetB.Y, LocalOffsetB.Z),
-                LocalHingeAxisA = new System.Numerics.Vector3(LocalHingeAxisA.X, LocalHingeAxisA.Y, LocalHingeAxisA.Z),
-                LocalHingeAxisB = new System.Numerics.Vector3(LocalHingeAxisB.X, LocalHingeAxisB.Y, LocalHingeAxisB.Z),
                 SpringSettings = new BepuPhysics.Constraints.SpringSettings(SpringFrequency, SpringDampingRatio),
             };
         }

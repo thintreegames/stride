@@ -1,6 +1,5 @@
-// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
-// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
-
+using BepuPhysics;
+using BepuPhysics.Collidables;
 using Stride.Core.Mathematics;
 using Stride.Extensions;
 using Stride.Graphics;
@@ -13,43 +12,25 @@ namespace Stride.Physics
     {
         public readonly float Radius;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SphereColliderShape"/> class.
-        /// </summary>
-        /// <param name="is2D">if set to <c>true</c> [is2 d].</param>
-        /// <param name="radius">The radius.</param>
-        public SphereColliderShape(bool is2D, float radiusParam)
+        public SphereColliderShape(Simulation simulation, float radius)
         {
-            Type = ColliderShapeTypes.Sphere;
-            Is2D = is2D;
-            Radius = radiusParam;
+            Radius = radius;
 
-            cachedScaling = Is2D ? new Vector3(1, 1, 0) : Vector3.One;
+            var sphere = new Sphere(radius);
+            InternalShape = sphere;
+            InternalShapeIndex = simulation.AddShape(sphere);
 
-            var shape = new BulletSharp.SphereShape(Radius)
-            {
-                LocalScaling = cachedScaling,
-            };
+            DebugPrimitiveMatrix = Matrix.Scaling(new Vector3(DebugScaling));
+        }
 
-            if (Is2D)
-            {
-                InternalShape = new BulletSharp.Convex2DShape(shape) { LocalScaling = cachedScaling };
-            }
-            else
-            {
-                InternalShape = shape;
-            }
-
-            DebugPrimitiveMatrix = Matrix.Scaling(2 * Radius * DebugScaling);
-            if (Is2D)
-            {
-                DebugPrimitiveMatrix.M33 = 0f;
-            }
+        public override void GetShapeInteria(float mass, out BodyInertia inertia)
+        {
+            ((Capsule)InternalShape).ComputeInertia(mass, out inertia);
         }
 
         public override MeshDraw CreateDebugPrimitive(GraphicsDevice device)
         {
-            return GeometricPrimitive.Sphere.New(device).ToMeshDraw();
+            return GeometricPrimitive.Sphere.New(device, Radius).ToMeshDraw();
         }
     }
 }

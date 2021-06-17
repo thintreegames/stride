@@ -85,34 +85,24 @@ namespace Stride.Physics.Engine
 
         public Entity CreateDebugEntity(PhysicsComponent component, RenderGroup renderGroup, bool alwaysAddOffset = false)
         {
-            if (component?.ColliderShape == null) return null;
+            if (component is not PhysicsColliderComponent colliderComponent) return null; 
+
+            if (colliderComponent.ColliderShape == null) return null;
 
             if (component.DebugEntity != null) return null;
 
             var debugEntity = new Entity();
 
-            var skinnedElement = component as PhysicsSkinnedComponentBase;
-            if (skinnedElement != null && skinnedElement.BoneIndex != -1)
-            {
-                Vector3 scale, pos;
-                Quaternion rot;
-                skinnedElement.BoneWorldMatrixOut.Decompose(out scale, out rot, out pos);
-                debugEntity.Transform.Position = pos;
-                debugEntity.Transform.Rotation = rot;
-            }
-            else
-            {
-                Vector3 scale, pos;
-                Quaternion rot;
-                component.Entity.Transform.WorldMatrix.Decompose(out scale, out rot, out pos);
-                debugEntity.Transform.Position = pos;
-                debugEntity.Transform.Rotation = rot;
-            }
+            Vector3 scale, pos;
+            Quaternion rot;
+            component.Entity.Transform.WorldMatrix.Decompose(out scale, out rot, out pos);
+            debugEntity.Transform.Position = pos;
+            debugEntity.Transform.Rotation = rot;
 
-            var shouldNotAddOffset = component is RigidbodyComponent || component is CharacterComponent;
+            var shouldNotAddOffset = component is RigidbodyComponent || component is CharacterControllerComponent;
 
             //don't add offset for non bone dynamic and kinematic as it is added already in the updates
-            var colliderEntity = CreateChildEntity(component, component.ColliderShape, renderGroup, alwaysAddOffset || !shouldNotAddOffset);
+            var colliderEntity = CreateChildEntity(component, colliderComponent.ColliderShape, renderGroup, alwaysAddOffset || !shouldNotAddOffset);
             if (colliderEntity != null) debugEntity.AddChild(colliderEntity);
 
             return debugEntity;
@@ -123,56 +113,18 @@ namespace Stride.Physics.Engine
             if (shape == null)
                 return null;
 
-            switch (shape.Type)
+            switch (shape)
             {
-                case ColliderShapeTypes.Compound:
-                    {
-                        var entity = new Entity();
-
-                        //We got to recurse
-                        var compound = (CompoundColliderShape)shape;
-                        for (var i = 0; i < compound.Count; i++)
-                        {
-                            var subShape = compound[i];
-                            var subEntity = CreateChildEntity(component, subShape, renderGroup, true); //always add offsets to compounds
-                            if (subEntity != null)
-                            {
-                                entity.AddChild(subEntity);
-                            }
-                        }
-
-                        entity.Transform.LocalMatrix = Matrix.Identity;
-                        entity.Transform.UseTRS = false;
-
-                        compound.DebugEntity = entity;
-
-                        return entity;
-                    }
-                case ColliderShapeTypes.Box:
-                case ColliderShapeTypes.Capsule:
-                case ColliderShapeTypes.ConvexHull:
-                case ColliderShapeTypes.Cylinder:
-                case ColliderShapeTypes.Sphere:
-                case ColliderShapeTypes.Cone:
-                case ColliderShapeTypes.StaticPlane:
-                case ColliderShapeTypes.StaticMesh:
-                case ColliderShapeTypes.Heightfield:
+                case BoxColliderShape _:
+                case ConvexHullColliderShape _:
+                case SphereColliderShape _:
+                case CylinderColliderShape _:
+                case CapsuleColliderShape _:
+                case MeshColliderShape _:
                     {
                         IDebugPrimitive debugPrimitive;
-                        var type = shape.GetType();
-                        if (type == typeof(HeightfieldColliderShape) || type.BaseType == typeof(HeightfieldColliderShape))
-                        {
-                            if (!updatableDebugMeshCache.TryGetValue(shape, out debugPrimitive))
-                            {
-                                debugPrimitive = shape.CreateUpdatableDebugPrimitive(graphicsDevice);
-                                updatableDebugMeshCache[shape] = debugPrimitive;
-                            }
-                            if (!updatableDebugMeshes.ContainsKey(shape))
-                            {
-                                updatableDebugMeshes.Add(shape, debugPrimitive);
-                            }
-                        }
-                        else if (type == typeof(CapsuleColliderShape) || type == typeof(ConvexHullColliderShape) || type == typeof(StaticMeshColliderShape))
+                        var shapeType = shape.GetType();
+                        if (shapeType == typeof(CapsuleColliderShape) || shapeType == typeof(ConvexHullColliderShape) || shapeType == typeof(MeshColliderShape))
                         {
                             if (!debugMeshCache2.TryGetValue(shape, out debugPrimitive))
                             {
@@ -229,31 +181,19 @@ namespace Stride.Physics.Engine
             var rigidbodyComponent = component as RigidbodyComponent;
             if (rigidbodyComponent != null)
             {
-                componentType = rigidbodyComponent.IsTrigger ? ComponentType.Trigger : 
-                    rigidbodyComponent.IsKinematic ? ComponentType.Kinematic : ComponentType.Dynamic;
+                componentType = rigidbodyComponent.IsKinematic ? ComponentType.Kinematic : ComponentType.Dynamic;
             }
-            else if (component is CharacterComponent)
+            else if (component is CharacterControllerComponent)
             {
                 componentType = ComponentType.Character;
             }
             else if (component is StaticColliderComponent)
             {
                 var staticCollider = (StaticColliderComponent)component;
-                componentType = staticCollider.IsTrigger ? ComponentType.Trigger : ComponentType.Static;
+                componentType = staticCollider.GenerateOverlapEvents ? ComponentType.Trigger : ComponentType.Static;
             }
 
-            if (shape is StaticPlaneColliderShape)
-            {
-                return componentTypeStaticPlaneMaterial[componentType];
-            }
-            else if (shape is HeightfieldColliderShape)
-            {
-                return componentTypeHeightfieldMaterial[componentType];
-            }
-            else
-            {
-                return componentTypeDefaultMaterial[componentType];
-            }
+            return componentTypeDefaultMaterial[componentType];
         }
     }
 }

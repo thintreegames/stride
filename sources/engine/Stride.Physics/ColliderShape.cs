@@ -2,6 +2,8 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System;
+using BepuPhysics;
+using BepuPhysics.Collidables;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
@@ -9,27 +11,17 @@ using Stride.Rendering;
 
 namespace Stride.Physics
 {
-    public class ColliderShape : IDisposable
+    public abstract class ColliderShape : IDisposable
     {
         protected const float DebugScaling = 1.0f;
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public virtual void Dispose()
-        {
-            if (InternalShape == null) return;
-            InternalShape.Dispose();
-            InternalShape = null;
-        }
+        public IColliderShapeDesc Description { get; internal set; }
 
-        /// <summary>
-        /// Gets or sets the type.
-        /// </summary>
-        /// <value>
-        /// The type.
-        /// </value>
-        public ColliderShapeTypes Type { get; protected set; }
+        internal IShape InternalShape;
+        internal TypedIndex InternalShapeIndex;
+        internal Entity DebugEntity;
+        public Matrix DebugPrimitiveMatrix;
+        internal bool IsPartOfAsset = false;
 
         /// <summary>
         /// The local offset
@@ -40,16 +32,6 @@ namespace Stride.Physics
         /// The local rotation
         /// </summary>
         public Quaternion LocalRotation = Quaternion.Identity;
-
-        /// <summary>
-        /// Updates the local transformations, required if you change LocalOffset and/or LocalRotation.
-        /// </summary>
-        public virtual void UpdateLocalTransformations()
-        {
-            //cache matrices used to translate the position from and to physics engine / gfx engine
-            PositiveCenterMatrix = Matrix.RotationQuaternion(LocalRotation) * (Parent == null ? Matrix.Translation(LocalOffset * cachedScaling) : Matrix.Translation(LocalOffset));
-            Matrix.Invert(ref PositiveCenterMatrix, out NegativeCenterMatrix);
-        }
 
         /// <summary>
         /// Gets the positive center matrix.
@@ -88,14 +70,6 @@ namespace Stride.Physics
                 var oldScale = cachedScaling;
 
                 cachedScaling = value;
-                if (Is2D && Type == ColliderShapeTypes.Box) cachedScaling.Z = 0.001f; //Box is not working properly when in a convex2dshape, Z cannot be 0
-                else if (Is2D) cachedScaling.Z = 0.0f;
-
-                if (Parent == null)
-                {
-                    InternalShape.LocalScaling = cachedScaling;
-                }
-
                 UpdateLocalTransformations();
 
                 //If we have a debug entity apply correct scaling to it as well
@@ -109,19 +83,7 @@ namespace Stride.Physics
             }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether the collider shape is 2D.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if [is2 d]; otherwise, <c>false</c>.
-        /// </value>
-        public bool Is2D { get; internal set; }
-
-        public IColliderShapeDesc Description { get; internal set; }
-
-        internal BulletSharp.CollisionShape InternalShape;
-
-        internal CompoundColliderShape Parent;
+        public abstract void GetShapeInteria(float mass, out BodyInertia inertia);
 
         public virtual MeshDraw CreateDebugPrimitive(GraphicsDevice device)
         {
@@ -133,16 +95,21 @@ namespace Stride.Physics
             return null;
         }
 
-        public virtual void UpdateDebugPrimitive(CommandList commandList, IDebugPrimitive debugPrimitive)
+        public virtual void UpdateDebugPrimitive(CommandList commandList, IDebugPrimitive debugPrimitive) { }
+
+        /// <summary>
+        /// Updates the local transformations, required if you change LocalOffset and/or LocalRotation.
+        /// </summary>
+        public virtual void UpdateLocalTransformations()
         {
+            //cache matrices used to translate the position from and to physics engine / gfx engine
+            PositiveCenterMatrix = Matrix.RotationQuaternion(LocalRotation) * Matrix.Translation(LocalOffset * cachedScaling);
+            Matrix.Invert(ref PositiveCenterMatrix, out NegativeCenterMatrix);
         }
 
-        public Matrix DebugPrimitiveMatrix;
-
-        internal bool NeedsCustomCollisionCallback;
-
-        internal bool IsPartOfAsset = false;
-
-        internal Entity DebugEntity;
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public virtual void Dispose() { }
     }
 }

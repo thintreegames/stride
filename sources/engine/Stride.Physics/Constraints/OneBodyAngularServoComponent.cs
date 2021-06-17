@@ -1,22 +1,23 @@
+using BepuPhysics.Constraints;
 using Stride.Core;
 using Stride.Core.Mathematics;
 
 namespace Stride.Physics.Constraints
 {
-    [DataContract("HingeConstraint")]
-    [Display("Hinge Constraint")]
-    public class HingeConstraint : PhysicsConstraintComponent
+    [DataContract("OneBodyAngularServoComponent")]
+    [Display("Angular Servo Constraint")]
+    public class OneBodyAngularServoComponent : PhysicsConstraintComponent
     {
-        public RigidbodyComponent BodyA { get; set; }
-        public RigidbodyComponent BodyB { get; set; }
 
-        private Vector3 localHingeAxisA;
-        public Vector3 LocalHingeAxisA
+        public RigidbodyComponent TargetBody { get; set; }
+
+        private Quaternion targetOrientation;
+        public Quaternion TargetOrientation
         {
-            get => localHingeAxisA;
+            get => targetOrientation;
             set
             {
-                localHingeAxisA = value;
+                targetOrientation = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -25,13 +26,13 @@ namespace Stride.Physics.Constraints
             }
         }
 
-        private Vector3 localHingeAxisB;
-        public Vector3 LocalHingeAxisB
+        private float servoMaxSpeed = float.MaxValue;
+        public float ServoMaxSpeed
         {
-            get => localHingeAxisB;
+            get => servoMaxSpeed;
             set
             {
-                localHingeAxisB = value;
+                servoMaxSpeed = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -40,28 +41,13 @@ namespace Stride.Physics.Constraints
             }
         }
 
-        private Vector3 localOffsetA;
-        public Vector3 LocalOffsetA
+        private float servoBaseSpeed = 0;
+        public float ServoBaseSpeed
         {
-            get => localOffsetA;
+            get => servoBaseSpeed;
             set
             {
-                localOffsetA = value;
-
-                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
-                {
-                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
-                }
-            }
-        }
-
-        private Vector3 localOffsetB;
-        public Vector3 LocalOffsetB
-        {
-            get => localOffsetB;
-            set
-            {
-                localOffsetB = value;
+                servoBaseSpeed = value;
 
                 if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
                 {
@@ -104,18 +90,17 @@ namespace Stride.Physics.Constraints
         {
             base.OnAttach();
 
-            constraintHandle = Simulation.AddConstraint(BodyA.BodyHandle, BodyB.BodyHandle, CreateDescription());
+            constraintHandle = Simulation.AddConstraint(TargetBody.BodyHandle, CreateDescription());
         }
 
-        private BepuPhysics.Constraints.Hinge CreateDescription()
+        private OneBodyAngularServo CreateDescription()
         {
-            return new BepuPhysics.Constraints.Hinge()
+            return new OneBodyAngularServo
             {
-                LocalOffsetA = new System.Numerics.Vector3(LocalOffsetA.X, LocalOffsetA.Y, LocalOffsetA.Z),
-                LocalOffsetB = new System.Numerics.Vector3(LocalOffsetB.X, LocalOffsetB.Y, LocalOffsetB.Z),
-                LocalHingeAxisA = new System.Numerics.Vector3(LocalHingeAxisA.X, LocalHingeAxisA.Y, LocalHingeAxisA.Z),
-                LocalHingeAxisB = new System.Numerics.Vector3(LocalHingeAxisB.X, LocalHingeAxisB.Y, LocalHingeAxisB.Z),
-                SpringSettings = new BepuPhysics.Constraints.SpringSettings(SpringFrequency, SpringDampingRatio),
+                TargetOrientation = new System.Numerics.Quaternion(TargetOrientation.X, TargetOrientation.Y,
+                                                                    TargetOrientation.Z, TargetOrientation.W),
+                ServoSettings = new ServoSettings(ServoMaxSpeed, ServoBaseSpeed, 360 / TargetBody.InverseMass),
+                SpringSettings = new SpringSettings(SpringFrequency, SpringDampingRatio),
             };
         }
 

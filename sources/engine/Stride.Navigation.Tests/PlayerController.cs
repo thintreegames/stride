@@ -37,7 +37,7 @@ namespace Stride.Navigation.Tests
 
         public NavigationComponent Navigation { get; set; }
 
-        public CharacterComponent Character { get; set; }
+        public CharacterControllerComponent Character { get; set; }
 
         public Vector3 SpawnPosition { get; set; }
 
@@ -69,7 +69,7 @@ namespace Stride.Navigation.Tests
             if (Navigation == null) throw new ArgumentException("Please add a NavigationComponent to the entity containing PlayerController with the correct navigation mesh!");
 
             // Will search for an CharacterComponent within the same entity as this script
-            Character = Entity.Get<CharacterComponent>();
+            Character = Entity.Get<CharacterControllerComponent>();
             if (Character == null) throw new ArgumentException("Please add a CharacterComponent to the entity containing PlayerController!");
             
             moveDestination = SpawnPosition;
@@ -141,7 +141,7 @@ namespace Stride.Navigation.Tests
                 // Allow a very simple inertia to the character to make animation transitions more fluid
                 moveDirection = direction * moveSpeed * cornerSpeedMultiply * 0.15f;
 
-                Character.SetVelocity(moveDirection * Speed);
+                Character.TargetVelocity = moveDirection.XY() * Speed;
             }
             else
             {
@@ -201,7 +201,7 @@ namespace Stride.Navigation.Tests
         private void HaltMovement()
         {
             moveDirection = Vector3.Zero;
-            Character.SetVelocity(Vector3.Zero);
+            Character.TargetVelocity = Vector2.Zero;
             moveDestination = Entity.Transform.WorldMatrix.TranslationVector;
         }
 
