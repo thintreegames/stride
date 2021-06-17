@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <PropertyGroup>
     <StrideRuntime>true</StrideRuntime>
   </PropertyGroup>
@@ -20,6 +20,43 @@
     <None Include="en.lproj\Localizable.strings" />
     <None Include="ja.lproj\Localizable.strings" />
   </ItemGroup>
+
+  <ItemGroup>
+	  <StrideNativeLib Condition="'$(StridePlatform)' == 'Windows' Or '$(StridePlatform)' == 'UWP'" Include="..\..\..\deps\Ultralight\win\*.*">
+		  <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </StrideNativeLib>
+
+  	  <StrideNativeLib Condition="'$(StridePlatform)' == 'Linux'" Include="..\..\..\deps\Ultralight\linux\*.*">
+		  <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </StrideNativeLib>
+      <StrideNativeLib Condition="'$(StridePlatform)' == 'iOS'" Include="..\..\..\deps\Ultralight\ios\*.*">
+		  <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+	      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </StrideNativeLib>  
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TextCopy" Version="4.3.1" />
+  </ItemGroup>
+	
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>_StrideIncludeExtraAssemblies;$(TargetsForTfmSpecificBuildOutput)</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ImpromptuNinjas.UltralightSharp">
+      <HintPath>..\..\..\deps\Ultralight\ImpromptuNinjas.UltralightSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+	
+  <Target Name="_StrideIncludeExtraAssemblies">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(OutputPath)ImpromptuNinjas.UltralightSharp.dll" />
+    </ItemGroup>
+  </Target>
+		
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>

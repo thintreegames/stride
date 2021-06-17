@@ -50,4 +50,9 @@ namespace Stride.Assets
     public class DefaultVisualScriptFactory : DefaultAssetFactory<VisualScriptAsset>
     {
     }
+
+    public class DefaultUltralightFactory : DefaultAssetFactory<UltralightContentAsset>
+    {
+
+    }
 }
