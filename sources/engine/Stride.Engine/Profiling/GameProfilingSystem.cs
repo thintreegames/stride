@@ -425,10 +425,10 @@ namespace Stride.Profiling
             Enabled = true;
             Visible = true;
 
-            if (Game != null)
+            if (Game is GameBase gameBase)
             {
-                userMinimizedState = Game.TreatNotFocusedLikeMinimized;
-                Game.TreatNotFocusedLikeMinimized = false;
+                userMinimizedState = gameBase.TreatNotFocusedLikeMinimized;
+                gameBase.TreatNotFocusedLikeMinimized = false;
             }
 
             // Backup current PresentInterval state
@@ -475,8 +475,8 @@ namespace Stride.Profiling
             GraphicsDevice.Tags.Set(GraphicsPresenter.ForcedPresentInterval, userPresentInterval);
 
             userPresentInterval = default;
-            if (Game != null)
-                Game.TreatNotFocusedLikeMinimized = userMinimizedState;
+            if (Game is GameBase gameBase)
+                gameBase.TreatNotFocusedLikeMinimized = userMinimizedState;
 
             Profiler.DisableAll();
             gcProfiler.Disable();
