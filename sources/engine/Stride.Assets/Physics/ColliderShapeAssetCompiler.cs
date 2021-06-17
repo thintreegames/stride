@@ -40,10 +40,6 @@ namespace Stride.Assets.Physics
             {
                 yield return new BuildDependencyInfo(type, typeof(AssetCompilationContext), BuildDependencyType.CompileContent);
             }
-            foreach (var type in AssetRegistry.GetAssetTypes(typeof(Heightmap)))
-            {
-                yield return new BuildDependencyInfo(type, typeof(AssetCompilationContext), BuildDependencyType.CompileContent);
-            }
         }
 
         public override IEnumerable<Type> GetInputTypesToExclude(AssetItem assetItem)
@@ -67,21 +63,6 @@ namespace Stride.Assets.Physics
                     if (convexHullDesc.Model != null)
                     {
                         var url = AttachedReferenceManager.GetUrl(convexHullDesc.Model);
-
-                        if (!string.IsNullOrEmpty(url))
-                        {
-                            yield return new ObjectUrl(UrlType.Content, url);
-                        }
-                    }
-                }
-                else if (desc is HeightfieldColliderShapeDesc)
-                {
-                    var heightfieldDesc = desc as HeightfieldColliderShapeDesc;
-                    var heightmapSource = heightfieldDesc?.HeightStickArraySource as HeightStickArraySourceFromHeightmap;
-
-                    if (heightmapSource?.Heightmap != null)
-                    {
-                        var url = AttachedReferenceManager.GetUrl(heightmapSource.Heightmap);
 
                         if (!string.IsNullOrEmpty(url))
                         {

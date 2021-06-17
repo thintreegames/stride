@@ -118,7 +118,7 @@ namespace Stride.Editor.Thumbnails
             var uiSystem = new UISystem(Services);
             Services.AddService(uiSystem);
 
-            var physicsSystem = new Bullet2PhysicsSystem(Services);
+            var physicsSystem = new Bepu2PhysicsSystem(Services);
             Services.AddService<IPhysicsSystem>(physicsSystem);
 
             gameSystems = new GameSystemCollection(Services) { fontSystem, uiSystem, physicsSystem };

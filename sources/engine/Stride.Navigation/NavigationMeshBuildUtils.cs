@@ -140,7 +140,7 @@ namespace Stride.Navigation
         /// <returns><c>true</c> if the collider passes the filter, <c>false</c> otherwise</returns>
         public static bool CheckColliderFilter(StaticColliderComponent collider, CollisionFilterGroupFlags includedCollisionGroups)
         {
-            return ((CollisionFilterGroupFlags)collider.CollisionGroup & includedCollisionGroups) != 0;
+            return true; // TODO: Update navmesh to use the new collision types
         }
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace Stride.Navigation
             int hash = 0;
             hash = (hash * 397) ^ collider.Entity.Transform.WorldMatrix.GetHashCode();
             hash = (hash * 397) ^ collider.Enabled.GetHashCode();
-            hash = (hash * 397) ^ collider.IsTrigger.GetHashCode();
+            hash = (hash * 397) ^ collider.GenerateOverlapEvents.GetHashCode();
             hash = (hash * 397) ^ CheckColliderFilter(collider, includedCollisionGroups).GetHashCode();
             foreach (var shape in collider.ColliderShapes)
             {
@@ -181,24 +181,6 @@ namespace Stride.Navigation
                 if (collider.ColliderShapes.Count == 1)
                 {
                     if (!collider.ColliderShapes[0].Match(collider.ColliderShape.Description))
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    var compound = collider.ColliderShape as CompoundColliderShape;
-                    if ((compound != null) && (compound.Count == collider.ColliderShapes.Count))
-                    {
-                        for (int i = 0; i < compound.Count; ++i)
-                        {
-                            if (!collider.ColliderShapes[i].Match(compound[i].Description))
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                    else
                     {
                         return false;
                     }

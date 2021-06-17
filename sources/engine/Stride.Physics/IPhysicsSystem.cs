@@ -7,7 +7,7 @@ namespace Stride.Physics
 {
     public interface IPhysicsSystem : IGameSystemBase
     {
-        Simulation Create(PhysicsProcessor processor, PhysicsEngineFlags flags = PhysicsEngineFlags.None);
+        Simulation Create(PhysicsProcessor sceneProcessor, PhysicsEngineFlags flags = PhysicsEngineFlags.None);
         void Release(PhysicsProcessor processor);
     }
 }

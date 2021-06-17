@@ -459,7 +459,7 @@ namespace Stride.Navigation
                 colliderData.Planes.Clear();
 
                 // Return empty data for disabled colliders, filtered out colliders or trigger colliders 
-                if (!colliderData.Component.Enabled || colliderData.Component.IsTrigger ||
+                if (!colliderData.Component.Enabled || colliderData.Component.GenerateOverlapEvents ||
                     !NavigationMeshBuildUtils.CheckColliderFilter(colliderData.Component, includedCollisionGroups))
                 {
                     colliderData.Processed = true;
@@ -505,7 +505,7 @@ namespace Stride.Navigation
                             var cylinderDesc = GetColliderShapeDesc<CylinderColliderShapeDesc>(cylinder.Description);
                             Matrix transform = cylinder.PositiveCenterMatrix * entityWorldMatrix;
 
-                            var meshData = GeometricPrimitive.Cylinder.New(cylinderDesc.Height, cylinderDesc.Radius, toLeftHanded: true);
+                            var meshData = GeometricPrimitive.Cylinder.New(cylinderDesc.Length, cylinderDesc.Radius, toLeftHanded: true);
                             entityNavigationMeshInputBuilder.AppendMeshData(meshData, transform);
                         }
                         else if (shapeType == typeof(CapsuleColliderShape))
@@ -516,30 +516,6 @@ namespace Stride.Navigation
 
                             var meshData = GeometricPrimitive.Capsule.New(capsuleDesc.Length, capsuleDesc.Radius, toLeftHanded: true);
                             entityNavigationMeshInputBuilder.AppendMeshData(meshData, transform);
-                        }
-                        else if (shapeType == typeof(ConeColliderShape))
-                        {
-                            var cone = (ConeColliderShape)shape;
-                            var coneDesc = GetColliderShapeDesc<ConeColliderShapeDesc>(cone.Description);
-                            Matrix transform = cone.PositiveCenterMatrix * entityWorldMatrix;
-
-                            var meshData = GeometricPrimitive.Cone.New(coneDesc.Radius, coneDesc.Height, toLeftHanded: true);
-                            entityNavigationMeshInputBuilder.AppendMeshData(meshData, transform);
-                        }
-                        else if (shapeType == typeof(StaticPlaneColliderShape))
-                        {
-                            var planeShape = (StaticPlaneColliderShape)shape;
-                            var planeDesc = GetColliderShapeDesc<StaticPlaneColliderShapeDesc>(planeShape.Description);
-                            Matrix transform = entityWorldMatrix;
-
-                            Plane plane = new Plane(planeDesc.Normal, planeDesc.Offset);
-
-                            // Pre-Transform plane parameters
-                            plane.Normal = Vector3.TransformNormal(planeDesc.Normal, transform);
-                            plane.Normal.Normalize();
-                            plane.D += Vector3.Dot(transform.TranslationVector, plane.Normal);
-
-                            colliderData.Planes.Add(plane);
                         }
                         else if (shapeType == typeof(ConvexHullColliderShape))
                         {
@@ -558,15 +534,15 @@ namespace Stride.Navigation
 
                             entityNavigationMeshInputBuilder.AppendArrays(hull.Points.ToArray(), indices, transform);
                         }
-                        else if (shapeType == typeof(StaticMeshColliderShape))
+                        else if (shapeType == typeof(MeshColliderShape))
                         {
-                            var mesh = (StaticMeshColliderShape)shape;
+                            var mesh = (MeshColliderShape)shape;
                             Matrix transform = mesh.PositiveCenterMatrix * entityWorldMatrix;
 
                             // Convert hull indices to int
-                            int[] indices = new int[mesh.Indices.Count];
-                            if (mesh.Indices.Count % 3 != 0) throw new InvalidOperationException($"{shapeType} does not consist of triangles");
-                            for (int i = 0; i < mesh.Indices.Count; i += 3)
+                            int[] indices = new int[mesh.Indices.Length];
+                            if (mesh.Indices.Length % 3 != 0) throw new InvalidOperationException($"{shapeType} does not consist of triangles");
+                            for (int i = 0; i < mesh.Indices.Length; i += 3)
                             {
                                 indices[i] = (int)mesh.Indices[i];
                                 indices[i + 2] = (int)mesh.Indices[i + 1]; // NOTE: Reversed winding to create left handed input
@@ -574,59 +550,6 @@ namespace Stride.Navigation
                             }
 
                             entityNavigationMeshInputBuilder.AppendArrays(mesh.Vertices.ToArray(), indices, transform);
-                        }
-                        else if (shapeType == typeof(HeightfieldColliderShape))
-                        {
-                            var heightfield = (HeightfieldColliderShape)shape;
-
-                            var halfRange = (heightfield.MaxHeight - heightfield.MinHeight) * 0.5f;
-                            var offset = -(heightfield.MinHeight + halfRange);
-                            Matrix transform = Matrix.Translation(new Vector3(0, offset, 0)) * heightfield.PositiveCenterMatrix * entityWorldMatrix;
-
-                            var width = heightfield.HeightStickWidth - 1;
-                            var length = heightfield.HeightStickLength - 1;
-                            var mesh = GeometricPrimitive.Plane.New(width, length, width, length, normalDirection: NormalDirection.UpY, toLeftHanded: true);
-
-                            var arrayLength = heightfield.HeightStickWidth * heightfield.HeightStickLength;
-
-                            using (heightfield.LockToReadHeights())
-                            {
-                                switch (heightfield.HeightType)
-                                {
-                                    case HeightfieldTypes.Short:
-                                        if (heightfield.ShortArray == null) continue;
-                                        for (int i = 0; i < arrayLength; ++i)
-                                        {
-                                            mesh.Vertices[i].Position.Y = heightfield.ShortArray[i] * heightfield.HeightScale;
-                                        }
-                                        break;
-                                    case HeightfieldTypes.Byte:
-                                        if (heightfield.ByteArray == null) continue;
-                                        for (int i = 0; i < arrayLength; ++i)
-                                        {
-                                            mesh.Vertices[i].Position.Y = heightfield.ByteArray[i] * heightfield.HeightScale;
-                                        }
-                                        break;
-                                    case HeightfieldTypes.Float:
-                                        if (heightfield.FloatArray == null) continue;
-                                        for (int i = 0; i < arrayLength; ++i)
-                                        {
-                                            mesh.Vertices[i].Position.Y = heightfield.FloatArray[i];
-                                        }
-                                        break;
-                                }
-                            }
-
-                            entityNavigationMeshInputBuilder.AppendMeshData(mesh, transform);
-                        }
-                        else if (shapeType == typeof(CompoundColliderShape))
-                        {
-                            // Unroll compound collider shapes
-                            var compound = (CompoundColliderShape)shape;
-                            for (int i = 0; i < compound.Count; i++)
-                            {
-                                shapesToProcess.Enqueue(compound[i]);
-                            }
                         }
                     }
                 }

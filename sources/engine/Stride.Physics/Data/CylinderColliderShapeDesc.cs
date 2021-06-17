@@ -15,54 +15,45 @@ namespace Stride.Physics
     public class CylinderColliderShapeDesc : IInlineColliderShapeDesc
     {
         /// <userdoc>
-        /// The height of the cylinder
+        /// Radius of the cylinder
         /// </userdoc>
+        [DataMember(5)]
+        public float Radius = 0.25f;
+
+        /// <summary>
+        /// Length of the cylinder
+        /// </summary>
         [DataMember(10)]
-        [DefaultValue(1f)]
-        public float Height = 1f;
+        public float Length = 1f;
 
         /// <userdoc>
-        /// The radius of the cylinder
+        /// The local offset of the collider shape.
         /// </userdoc>
         [DataMember(20)]
-        [DefaultValue(0.5f)]
-        public float Radius = 0.5f;
-
-        /// <userdoc>
-        /// The orientation of the cylinder.
-        /// </userdoc>
-        [DataMember(30)]
-        [DefaultValue(ShapeOrientation.UpY)]
-        public ShapeOrientation Orientation = ShapeOrientation.UpY;
-
-        /// <userdoc>
-        /// The offset with the real graphic mesh.
-        /// </userdoc>
-        [DataMember(40)]
-        public Vector3 LocalOffset;
+        public Vector3 LocalOffset = Vector3.Zero;
 
         /// <userdoc>
         /// The local rotation of the collider shape.
         /// </userdoc>
-        [DataMember(50)]
+        [DataMember(30)]
         public Quaternion LocalRotation = Quaternion.Identity;
 
         public bool Match(object obj)
         {
-            var other = obj as CylinderColliderShapeDesc;
-            if (other == null)
-                return false;
-
-            return Math.Abs(other.Height - Height) < float.Epsilon &&
-                   Math.Abs(other.Radius - Radius) < float.Epsilon &&
-                   other.Orientation == Orientation &&
-                   other.LocalOffset == LocalOffset &&
-                   other.LocalRotation == LocalRotation;
+            var other = obj as CylinderColliderShape;
+            return other?.Radius == Radius 
+                && other.Length == Length 
+                && other.LocalOffset == LocalOffset 
+                && other.LocalRotation == LocalRotation;
         }
 
-        public ColliderShape CreateShape()
+        public ColliderShape CreateShape(Simulation simulation, ContentManager content)
         {
-            return new CylinderColliderShape(Height, Radius, Orientation) { LocalOffset = LocalOffset, LocalRotation = LocalRotation };
+            return new CylinderColliderShape(simulation, Radius, Length)
+            {
+                LocalOffset = LocalOffset,
+                LocalRotation = LocalRotation
+            };
         }
     }
 }

@@ -4,6 +4,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using BepuPhysics;
+using BepuPhysics.Collidables;
 using Stride.Core.Mathematics;
 using Stride.Extensions;
 using Stride.Graphics;
@@ -17,20 +19,14 @@ namespace Stride.Physics
         private readonly IReadOnlyList<Vector3> pointsList;
         private readonly IReadOnlyList<uint> indicesList;
 
-        public ConvexHullColliderShape(IReadOnlyList<Vector3> points, IReadOnlyList<uint> indices, Vector3 scaling)
+        public ConvexHullColliderShape(Simulation simulation, IReadOnlyList<Vector3> points, IReadOnlyList<uint> indices, Vector3 scaling)
         {
-            Type = ColliderShapeTypes.ConvexHull;
-            Is2D = false;
-
             cachedScaling = scaling;
 
             pointsList = points;
             indicesList = indices;
 
-            InternalShape = new BulletSharp.ConvexHullShape(PointsAsBullet())
-            {
-                LocalScaling = cachedScaling,
-            };
+            InternalShape = new ConvexHull(PointsAsBepu(), simulation.BufferPool, out var center);
 
             DebugPrimitiveMatrix = Matrix.Scaling(Vector3.One * DebugScaling);
         }
@@ -43,6 +39,12 @@ namespace Stride.Physics
         {
             get { return indicesList; }
         }
+
+        public override void GetShapeInteria(float mass, out BodyInertia inertia)
+        {
+            ((ConvexHull)InternalShape).ComputeInertia(mass, out inertia);
+        }
+
 
         public override MeshDraw CreateDebugPrimitive(GraphicsDevice device)
         {
@@ -76,10 +78,17 @@ namespace Stride.Physics
             return new GeometricPrimitive(device, meshData).ToMeshDraw();
         }
 
-        IEnumerable<BulletSharp.Math.Vector3> PointsAsBullet()
+        private System.Span<System.Numerics.Vector3> PointsAsBepu()
         {
+            var vector3Array = new System.Numerics.Vector3[pointsList.Count];
+
             for (int i = 0; i < pointsList.Count; i++)
-                yield return pointsList[i];
+            {
+                var strideVector = pointsList[i];
+                vector3Array[i] = new System.Numerics.Vector3(strideVector.X, strideVector.Y, strideVector.Z);
+            }
+
+            return new System.Span<System.Numerics.Vector3>(vector3Array);
         }
     }
 }

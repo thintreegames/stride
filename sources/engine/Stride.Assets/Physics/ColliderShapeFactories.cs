@@ -57,50 +57,11 @@ namespace Stride.Assets.Physics
         }
     }
 
-    public class ColliderShapeConeFactory : AssetFactory<ColliderShapeAsset>
-    {
-        public static ColliderShapeAsset Create()
-        {
-            return new ColliderShapeAsset { ColliderShapes = { new ConeColliderShapeDesc() } };
-        }
-
-        public override ColliderShapeAsset New()
-        {
-            return Create();
-        }
-    }
-
-    public class ColliderShapePlaneFactory : AssetFactory<ColliderShapeAsset>
-    {
-        public static ColliderShapeAsset Create()
-        {
-            return new ColliderShapeAsset { ColliderShapes = { new StaticPlaneColliderShapeDesc() } };
-        }
-
-        public override ColliderShapeAsset New()
-        {
-            return Create();
-        }
-    }
-
     public class ColliderShapeSphereFactory : AssetFactory<ColliderShapeAsset>
     {
         public static ColliderShapeAsset Create()
         {
             return new ColliderShapeAsset { ColliderShapes = { new SphereColliderShapeDesc() } };
-        }
-
-        public override ColliderShapeAsset New()
-        {
-            return Create();
-        }
-    }
-
-    public class ColliderShapeHeightfieldFactory : AssetFactory<ColliderShapeAsset>
-    {
-        public static ColliderShapeAsset Create()
-        {
-            return new ColliderShapeAsset { ColliderShapes = { new HeightfieldColliderShapeDesc() } };
         }
 
         public override ColliderShapeAsset New()

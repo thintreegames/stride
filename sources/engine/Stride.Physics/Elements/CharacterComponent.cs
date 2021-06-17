@@ -2,291 +2,161 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System;
-using System.ComponentModel;
+using BepuPhysics;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
 namespace Stride.Physics
 {
-    [DataContract("CharacterComponent")]
-    [Display("Character")]
-    public sealed class CharacterComponent : PhysicsComponent
+    [DataContract("CharacterControllerComponent")]
+    [Display("Character Controller")]
+    [RequireComponent(typeof(RigidbodyComponent))]
+    public class CharacterControllerComponent : PhysicsComponent
     {
-        public CharacterComponent()
-        {
-            Orientation = Quaternion.Identity;
-            StepHeight = 0.1f;
-            ProcessCollisions = true;
-        }
-
         /// <summary>
-        /// Jumps this instance.
+        /// Direction the character is looking in world space. Defines the forward direction for movement.
         /// </summary>
-        public void Jump(Vector3 jumpDirection)
-        {
-            if (KinematicCharacter == null)
-            {
-                throw new InvalidOperationException("Attempted to call a Physics function that is avaliable only when the Entity has been already added to the Scene.");
-            }
-            BulletSharp.Math.Vector3 bV3 = jumpDirection;
-            KinematicCharacter.Jump(ref bV3);
-        }
-
-        /// <summary>
-        /// Jumps this instance.
-        /// </summary>
-        public void Jump()
-        {
-            if (KinematicCharacter == null)
-            {
-                throw new InvalidOperationException("Attempted to call a Physics function that is avaliable only when the Entity has been already added to the Scene.");
-            }
-            KinematicCharacter.Jump();
-        }
-
-        /// <summary>
-        /// Gets or sets the height of the character step.
-        /// </summary>
-        /// <value>
-        /// The height of the character step.
-        /// </value>
-        /// <userdoc>
-        /// Only valid for CharacterController type, describes the max slope height a character can climb. Cannot change during run-time.
-        /// </userdoc>
-        [DataMember(75)]
-        [DefaultValue(0.1f)]
-        public float StepHeight { get; set; }
-
-        private float fallSpeed = 10.0f;
-
-        /// <summary>
-        /// Gets or sets if this character element fall speed
-        /// </summary>
-        /// <value>
-        /// true, false
-        /// </value>
-        /// <userdoc>
-        /// The fall speed of this character
-        /// </userdoc>
-        [DataMember(80)]
-        public float FallSpeed
-        {
-            get
-            {
-                return fallSpeed;
-            }
-            set
-            {
-                fallSpeed = value;
-
-                if (KinematicCharacter != null)
-                {
-                    KinematicCharacter.FallSpeed = fallSpeed;
-                }
-            }
-        }
-
-        private AngleSingle maxSlope = new AngleSingle(45, AngleType.Degree);
-
-        /// <summary>
-        /// Gets or sets if this character element max slope
-        /// </summary>
-        /// <value>
-        /// true, false
-        /// </value>
-        /// <userdoc>
-        /// The max slope this character can climb
-        /// </userdoc>
-        [Display("Maximum Slope")]
-        [DataMember(85)]
-        public AngleSingle MaxSlope
-        {
-            get
-            {
-                return maxSlope;
-            }
-            set
-            {
-                maxSlope = value;
-
-                if (KinematicCharacter != null)
-                {
-                    KinematicCharacter.MaxSlope = value.Radians;
-                }
-            }
-        }
-
-        private float jumpSpeed = 5.0f;
-
-        /// <summary>
-        /// Gets or sets if this character jump speed
-        /// </summary>
-        /// <value>
-        /// A float representing character jump speed in Stride world units
-        /// </value>
-        /// <userdoc>
-        /// The speed of the jump
-        /// </userdoc>
-        [DataMember(90)]
-        public float JumpSpeed
-        {
-            get
-            {
-                return jumpSpeed;
-            }
-            set
-            {
-                jumpSpeed = value;
-
-                if (KinematicCharacter != null)
-                {
-                    KinematicCharacter.JumpSpeed = jumpSpeed;
-                }
-            }
-        }
-
-        private Vector3 gravity = new Vector3(0.0f, -10.0f, 0.0f);
-
-        /// <summary>
-        /// Gets or sets if this character is affected by any gravity
-        /// </summary>
-        /// <value>
-        /// A Vector3 representing directional gravity in Stride world units
-        /// </value>
-        /// <userdoc>
-        /// The gravity force applied to this character
-        /// </userdoc>
-        [Display("Gravity")]
-        [DataMember(95)]
-        public Vector3 Gravity
-        {
-            get
-            {
-                return gravity;
-            }
-            set
-            {
-                gravity = value;
-
-                if (KinematicCharacter != null)
-                {
-                    KinematicCharacter.Gravity = value;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether this instance is on the ground.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if this instance is grounded; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsGrounded => KinematicCharacter?.OnGround ?? false;
-
-        /// <summary>
-        /// Teleports the specified target position.
-        /// </summary>
-        /// <param name="targetPosition">The target position.</param>
-        public void Teleport(Vector3 targetPosition)
-        {
-            if (KinematicCharacter == null)
-            {
-                throw new InvalidOperationException("Attempted to call a Physics function that is avaliable only when the Entity has been already added to the Scene.");
-            }
-
-            //we assume that the user wants to teleport in world/entity space
-            var entityPos = Entity.Transform.Position;
-            var physPos = PhysicsWorldTransform.TranslationVector;
-            var diff = physPos - entityPos;
-            BulletSharp.Math.Vector3 bV3 = targetPosition + diff;
-            KinematicCharacter.Warp(ref bV3);
-        }
-
-        /// <summary>
-        /// Moves the character towards the specified movement vector.
-        /// Motion will stay in place unless modified or canceled passing Vector3.Zero.
-        /// </summary>
-        /// <param name="movement">The velocity vector, typically direction * delta time `var dt = this.GetSimulation().FixedTimeStep;` * speed.</param>
-        [Obsolete("Please use SetVelocity instead. SetVelocity internally applies this.GetSimulation().FixedTimeStep")]
-        public void Move(Vector3 movement)
-        {
-            if (KinematicCharacter == null)
-            {
-                throw new InvalidOperationException("Attempted to call a Physics function that is avaliable only when the Entity has been already added to the Scene.");
-            }
-
-            KinematicCharacter.SetWalkDirection(movement);
-        }
-
-        /// <summary>
-        /// Sets the character velocity.
-        /// Velocity will be applied every frame unless modified or canceled passing Vector3.Zero.
-        /// </summary>
-        /// <remarks>The engine internally will multiply velocity with the simulation fixed time step.</remarks>
-        /// <param name="velocity">The velocity vector, typically direction * speed.</param>
-        public void SetVelocity(Vector3 velocity)
-        {
-            if (KinematicCharacter == null)
-            {
-                throw new InvalidOperationException("Attempted to call a Physics function that is avaliable only when the Entity has been already added to the Scene.");
-            }
-
-            KinematicCharacter.SetWalkDirection(velocity * Simulation.FixedTimeStep);
-        }
-
-        /// <summary>
-        /// Sets or gets the orientation of the Entity attached to this character controller
-        /// </summary>
-        /// <remarks>This orientation has no impact in the physics simulation</remarks>
         [DataMemberIgnore]
-        public Quaternion Orientation { get; set; }
-
+        public Vector3 ViewDirection;
+        /// <summary>
+        /// Target horizontal velocity. 
+        /// X component refers to desired velocity along the strafing direction (perpendicular to the view direction projected down to the surface), 
+        /// Y component refers to the desired velocity along the forward direction (aligned with the view direction projected down to the surface).
+        /// </summary>
         [DataMemberIgnore]
-        internal BulletSharp.KinematicCharacterController KinematicCharacter;
+        public Vector2 TargetVelocity;
+
+        /// <summary>
+        /// Character's up direction in the local space of the character's body.
+        /// </summary>
+        public Vector3 LocalUp { get; set; } = Vector3.UnitY;
+        /// <summary>
+        /// Velocity at which the character pushes off the support during a jump.
+        /// </summary>
+        public float JumpVelocity { get; set; } = 6;
+        /// <summary>
+        /// Maximum force the character can apply tangent to the supporting surface to move.
+        /// </summary>
+        public float MaximumHorizontalForce { get; set; } = 20;
+        /// <summary>
+        /// Maximum force the character can apply to glue itself to the supporting surface.
+        /// </summary>
+        public float MaximumVerticalForce { get; set; } = 100;
+        /// <summary>
+        /// Cosine of the maximum slope angle that the character can treat as a support.
+        /// </summary>
+        public float MaximumSlope { get; set; } = MathF.PI * 0.25f;
+        /// <summary>
+        /// Depth threshold beyond which a contact is considered a support if it the normal allows it.
+        /// </summary>
+        public float MinimumSupportDepth { get; set; } = -0.0035f;
+
+
+        private float mass = 1f;
+
+        public float Mass
+        {
+            get
+            {
+                return mass;
+            }
+            set
+            {
+                mass = value;
+
+                if (Simulation != null && Simulation.BodyExists(rigidBody.BodyHandle))
+                {
+                    Simulation.GetBodyReference(rigidBody.BodyHandle).SetLocalInertia(new BodyInertia { InverseMass = 1f / Mass });
+                }
+            }
+        }
+
+        private RigidbodyComponent rigidBody;
 
         protected override void OnAttach()
         {
-            NativeCollisionObject = new BulletSharp.PairCachingGhostObject
-            {
-                CollisionShape = ColliderShape.InternalShape,
-                UserObject = this,
-            };
-
-            NativeCollisionObject.CollisionFlags |= BulletSharp.CollisionFlags.CharacterObject;
-
-            if (ColliderShape.NeedsCustomCollisionCallback)
-            {
-                NativeCollisionObject.CollisionFlags |= BulletSharp.CollisionFlags.CustomMaterialCallback;
-            }
-
-            NativeCollisionObject.ContactProcessingThreshold = !Simulation.CanCcd ? 1e18f : 1e30f;
-
-            BulletSharp.Math.Vector3 unitY = new BulletSharp.Math.Vector3(0f, 1f, 0f);
-            KinematicCharacter = new BulletSharp.KinematicCharacterController((BulletSharp.PairCachingGhostObject)NativeCollisionObject, (BulletSharp.ConvexShape)ColliderShape.InternalShape, StepHeight, ref unitY);
-
             base.OnAttach();
 
-            FallSpeed = fallSpeed;
-            MaxSlope = maxSlope;
-            JumpSpeed = jumpSpeed;
-            Gravity = gravity;
+            rigidBody = Entity.Get<RigidbodyComponent>();
 
-            UpdatePhysicsTransformation(); //this will set position and rotation of the collider
+            BodyInertia interia = new BodyInertia { InverseMass = 1f / Mass };
+            rigidBody.GetBodyReference().SetLocalInertia(interia);
 
-            Simulation.AddCharacter(this, (CollisionFilterGroupFlags)CollisionGroup, CanCollideWith);
+            ref var character = ref Simulation.AllocateCharacter(rigidBody.BodyHandle);
+            character.LocalUp = new System.Numerics.Vector3(LocalUp.X, LocalUp.Y, LocalUp.Z);
+            character.CosMaximumSlope = MathF.Cos(MaximumSlope);
+            character.JumpVelocity = JumpVelocity;
+            character.MaximumVerticalForce = MaximumVerticalForce;
+            character.MaximumHorizontalForce = MaximumHorizontalForce;
+            character.MinimumSupportDepth = MinimumSupportDepth;
+            character.MinimumSupportContinuationDepth = -rigidBody.SpeculativeMargin;
+
+            Simulation.physicsBodySettings.Allocate(rigidBody.BodyHandle) = new SimplePhysicsBodySettings
+            {
+                CustomDamping = false,
+                CustomGravity = false,
+            };
+
+            Simulation.physicsMaterials.Allocate(rigidBody.BodyHandle) = new SimplePhysicsMaterial
+            {
+                FrictionCoefficient = 1f,
+                MaximumRecoveryVelocity = 2f,
+                SpringSettings = new BepuPhysics.Constraints.SpringSettings(30, 1)
+            };
+
+            Simulation.physicsTags.Allocate(rigidBody.BodyHandle) = new SimplePhysicsTag
+            {
+                ComponentId = Id
+            };
+        }
+
+        public void Teleport(Vector3 position)
+        {
+            var characterBody = Simulation.GetBodyReference(rigidBody.BodyHandle);
+            characterBody.Pose.Position = new System.Numerics.Vector3(position.X, position.Y, position.Z);
+        }
+
+        public void ResetInteria()
+        {
+            BodyInertia interia = new BodyInertia { InverseMass = 1f / Mass };
+            rigidBody.GetBodyReference().SetLocalInertia(interia);
+        }
+
+        public void Move(Vector2 newMoveDirection, Vector3 newViewDirection)
+        {
+            var bepuTargetVelocity = new System.Numerics.Vector2(newMoveDirection.X, newMoveDirection.Y);
+            var bepuViewDirection = new System.Numerics.Vector3(newViewDirection.X, newViewDirection.Y, newViewDirection.Z);
+
+            ref var character = ref Simulation.GetCharacterByBodyHandle(rigidBody.BodyHandle);
+
+            var characterBody = Simulation.GetBodyReference(rigidBody.BodyHandle);
+            //Modifying the character's raw data does not automatically wake the character up, so we do so explicitly if necessary.
+            //If you don't explicitly wake the character up, it won't respond to the changed motion goals.
+            //(You can also specify a negative deactivation threshold in the BodyActivityDescription to prevent the character from sleeping at all.)
+            if (!characterBody.Awake &&
+                ((character.TryJump && character.Supported) ||
+                bepuTargetVelocity != character.TargetVelocity ||
+                (newMoveDirection != Vector2.Zero && character.ViewDirection != bepuViewDirection)))
+            {
+                Simulation.WakeBody(rigidBody.BodyHandle);
+            }
+
+            character.TargetVelocity = bepuTargetVelocity;
+            character.ViewDirection = bepuViewDirection;
+        }
+
+        public void Jump()
+        {
+            ref var character = ref Simulation.GetCharacterByBodyHandle(rigidBody.BodyHandle);
+            character.TryJump = true;
         }
 
         protected override void OnDetach()
         {
-            if (KinematicCharacter == null) return;
-
-            Simulation.RemoveCharacter(this);
-
-            KinematicCharacter.Dispose();
-            KinematicCharacter = null;
-
             base.OnDetach();
+
+            Simulation.RemoveCharacterByBodyHandle(rigidBody.BodyHandle);
         }
     }
 }

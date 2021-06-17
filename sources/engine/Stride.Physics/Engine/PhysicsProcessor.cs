@@ -1,10 +1,12 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using Stride.Core;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
+using Stride.Core.Threading;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Physics.Engine;
@@ -19,26 +21,27 @@ namespace Stride.Physics
             public PhysicsComponent PhysicsComponent;
             public TransformComponent TransformComponent;
             public ModelComponent ModelComponent; //not mandatory, could be null e.g. invisible triggers
-            public bool BoneMatricesUpdated;
         }
 
+        private readonly Dictionary<Guid, PhysicsComponent> elementIdToElement = new Dictionary<Guid, PhysicsComponent>();
         private readonly List<PhysicsComponent> elements = new List<PhysicsComponent>();
-        private readonly List<PhysicsSkinnedComponentBase> boneElements = new List<PhysicsSkinnedComponentBase>();
-        private readonly List<CharacterComponent> characters = new List<CharacterComponent>();
+        private readonly List<RigidbodyComponent> rigidElements = new List<RigidbodyComponent>();
+        private readonly List<PhysicsColliderComponent> colliders = new List<PhysicsColliderComponent>();
 
-        private Bullet2PhysicsSystem physicsSystem;
+        private readonly HashSet<PhysicsComponent> currentFrameRemovals = new HashSet<PhysicsComponent>();
+
+        private Bepu2PhysicsSystem physicsSystem;
+
+        private bool colliderShapesRendering;
+        private PhysicsShapesRenderingService debugShapeRendering;
+
         private Scene parentScene;
         private Scene debugScene;
 
-        private bool colliderShapesRendering;
+        private RenderGroup colliderShapesRenderGroup { get; set; } = RenderGroup.Group0;
 
-        private PhysicsShapesRenderingService debugShapeRendering;
 
-        public PhysicsProcessor()
-            : base(typeof(TransformComponent))
-        {
-            Order = 0xFFFF;
-        }
+        public Simulation Simulation { get; private set; }
 
         /// <summary>
         /// Gets or sets the associated parent scene to render the physics debug shapes. Assigned with default one on <see cref="OnSystemAdd"/>
@@ -68,7 +71,12 @@ namespace Stride.Physics
             }
         }
 
-        public Simulation Simulation { get; private set; }
+
+        public PhysicsProcessor()
+            : base(typeof(TransformComponent))
+        {
+            Order = 0xFFFF;
+        }
 
         internal void RenderColliderShapes(bool enabled)
         {
@@ -84,9 +92,12 @@ namespace Stride.Physics
 
                     foreach (var element in elements)
                     {
-                        element.RemoveDebugEntity(debugScene);
+                        if (element is PhysicsColliderComponent colliderComponent)
+                        {
+                            colliderComponent.RemoveDebugEntity(debugScene);
+                        }
                     }
-                    
+
                     // Remove from parent scene
                     debugScene.Parent = null;
                 }
@@ -99,13 +110,17 @@ namespace Stride.Physics
                 {
                     if (element.Enabled)
                     {
-                        element.AddDebugEntity(debugScene, Simulation.ColliderShapesRenderGroup);
+                        if (element is PhysicsColliderComponent colliderComponent)
+                        {
+                            colliderComponent.AddDebugEntity(debugScene, colliderShapesRenderGroup);
+                        }
                     }
                 }
 
                 debugScene.Parent = parentScene;
             }
         }
+
 
         protected override AssociatedData GenerateComponentData(Entity entity, PhysicsComponent component)
         {
@@ -124,11 +139,11 @@ namespace Stride.Physics
 
         protected override bool IsAssociatedDataValid(Entity entity, PhysicsComponent physicsComponent, AssociatedData associatedData)
         {
-            return
-                physicsComponent == associatedData.PhysicsComponent &&
+            return physicsComponent == associatedData.PhysicsComponent &&
                 entity.Transform == associatedData.TransformComponent &&
                 entity.Get<ModelComponent>() == associatedData.ModelComponent;
         }
+
 
         protected override void OnEntityComponentAdding(Entity entity, PhysicsComponent component, AssociatedData data)
         {
@@ -138,51 +153,47 @@ namespace Stride.Physics
 
             component.Attach(data);
 
-            var character = component as CharacterComponent;
-            if (character != null)
+            if (component is PhysicsColliderComponent colliderComponent)
             {
-                characters.Add(character);
-            }
+                colliders.Add(colliderComponent);
 
-            if (colliderShapesRendering)
-            {
-                component.AddDebugEntity(debugScene, Simulation.ColliderShapesRenderGroup);
+                if (colliderShapesRendering)
+                {
+                    colliderComponent.AddDebugEntity(debugScene, colliderShapesRenderGroup);
+                }
             }
 
             elements.Add(component);
+            elementIdToElement.Add(component.Id, component);
 
-            if (component.BoneIndex != -1)
+            if (component is RigidbodyComponent rigidbodyComponent)
             {
-                boneElements.Add((PhysicsSkinnedComponentBase)component);
+                rigidElements.Add(rigidbodyComponent);
             }
         }
 
         private void ComponentRemoval(PhysicsComponent component)
         {
-            Simulation.CleanContacts(component);
-
-            if (component.BoneIndex != -1)
+            if (component is PhysicsColliderComponent colliderComponent)
             {
-                boneElements.Remove((PhysicsSkinnedComponentBase)component);
-            }
+                colliders.Remove(colliderComponent);
 
-            elements.Remove(component);
-
-            if (colliderShapesRendering)
-            {
-                component.RemoveDebugEntity(debugScene);
-            }
-
-            var character = component as CharacterComponent;
-            if (character != null)
-            {
-                characters.Remove(character);
+                if (colliderShapesRendering)
+                {
+                    colliderComponent.RemoveDebugEntity(debugScene);
+                }
             }
 
             component.Detach();
-        }
 
-        private readonly HashSet<PhysicsComponent> currentFrameRemovals = new HashSet<PhysicsComponent>();
+            elements.Remove(component);
+            elementIdToElement.Remove(component.Id);
+
+            if (component is RigidbodyComponent rigidbodyComponent)
+            {
+                rigidElements.Remove(rigidbodyComponent);
+            }
+        }
 
         protected override void OnEntityComponentRemoved(Entity entity, PhysicsComponent component, AssociatedData data)
         {
@@ -191,11 +202,11 @@ namespace Stride.Physics
 
         protected override void OnSystemAdd()
         {
-            physicsSystem = (Bullet2PhysicsSystem)Services.GetService<IPhysicsSystem>();
+            physicsSystem = Services.GetService<Bepu2PhysicsSystem>();
             if (physicsSystem == null)
             {
-                physicsSystem = new Bullet2PhysicsSystem(Services);
-                Services.AddService<IPhysicsSystem>(physicsSystem);
+                physicsSystem = new Bepu2PhysicsSystem(Services);
+                Services.AddService(physicsSystem);
                 var gameSystems = Services.GetSafeServiceAs<IGameSystemCollection>();
                 gameSystems.Add(physicsSystem);
             }
@@ -203,7 +214,8 @@ namespace Stride.Physics
             ((IReferencable)physicsSystem).AddReference();
 
             // Check if PhysicsShapesRenderingService is created (and check if rendering is enabled with IGraphicsDeviceService)
-            if (Services.GetService<Graphics.IGraphicsDeviceService>() != null && Services.GetService<PhysicsShapesRenderingService>() == null)
+            if (Services.GetService<Graphics.IGraphicsDeviceService>() != null
+                && Services.GetService<PhysicsShapesRenderingService>() == null)
             {
                 debugShapeRendering = new PhysicsShapesRenderingService(Services);
                 var gameSystems = Services.GetSafeServiceAs<IGameSystemCollection>();
@@ -217,66 +229,44 @@ namespace Stride.Physics
 
         protected override void OnSystemRemove()
         {
-            physicsSystem.Release(this);
-            ((IReferencable)physicsSystem).Release();
-        }
-
-        internal void UpdateCharacters()
-        {
-            var charactersProfilingState = Profiler.Begin(PhysicsProfilingKeys.CharactersProfilingKey);
-            var activeCharacters = 0;
-            //characters need manual updating
-            foreach (var element in characters)
+            if (physicsSystem != null)
             {
-                if (!element.Enabled || element.ColliderShape == null) continue;
-
-                var worldTransform = Matrix.RotationQuaternion(element.Orientation) * element.PhysicsWorldTransform;
-                element.UpdateTransformationComponent(ref worldTransform);
-
-                if (element.DebugEntity != null)
-                {
-                    Vector3 scale, pos;
-                    Quaternion rot;
-                    worldTransform.Decompose(out scale, out rot, out pos);
-                    element.DebugEntity.Transform.Position = pos;
-                    element.DebugEntity.Transform.Rotation = rot;
-                }
-
-                charactersProfilingState.Mark();
-                activeCharacters++;
-            }
-            charactersProfilingState.End("Active characters: {0}", activeCharacters);
-        }
-
-        public override void Draw(RenderContext context)
-        {
-            if (Simulation.DisableSimulation) return;
-
-            foreach (var element in boneElements)
-            {
-                element.UpdateDraw();
+                physicsSystem.Release(this);
+                ((IReferencable)physicsSystem).Release();
             }
         }
 
-        internal void UpdateBones()
+        internal void UpdateBodies()
         {
-            foreach (var element in boneElements)
-            {
-                element.UpdateBones();
-            }
+            Dispatcher.ForEach(rigidElements, UpdateTransformations);
         }
 
-        public void UpdateContacts()
+        private void UpdateTransformations(RigidbodyComponent body)
         {
-            foreach (var dataPair in ComponentDatas)
+            var entity = body.Entity;
+
+            Quaternion bodyRot;
+            Vector3 bodyPos;
+            if (body.Interpolate)
             {
-                var data = dataPair.Value;
-                var shouldProcess = data.PhysicsComponent.ProcessCollisions || ((data.PhysicsComponent as PhysicsTriggerComponentBase)?.IsTrigger ?? false);
-                if (data.PhysicsComponent.Enabled && shouldProcess && data.PhysicsComponent.ColliderShape != null)
-                {
-                    Simulation.ContactTest(data.PhysicsComponent);
-                }
+                bodyPos = body.GetInterpolatedPosition();
+                bodyRot = body.GetInterpolatedRotation();
             }
+            else
+            {
+                bodyRot = body.GetRotation();
+                bodyPos = body.GetPosition();
+            }
+
+            Matrix.Transformation(ref entity.Transform.Scale,
+                ref bodyRot,
+                ref bodyPos,
+                out var worldMatrix);
+
+            worldMatrix.Decompose(out Vector3 scale, out Quaternion rotation, out Vector3 translation);
+            entity.Transform.Scale = scale;
+            entity.Transform.Rotation = rotation;
+            entity.Transform.Position = translation;
         }
 
         public void UpdateRemovals()
@@ -287,6 +277,11 @@ namespace Stride.Physics
             }
 
             currentFrameRemovals.Clear();
+        }
+
+        public bool TryGetComponentById(Guid guid, out PhysicsComponent component)
+        {
+            return elementIdToElement.TryGetValue(guid, out component);
         }
     }
 }

@@ -1,11 +1,11 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
-using System;
-using System.ComponentModel;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Core.Serialization.Contents;
+using System;
+using System.ComponentModel;
 
 namespace Stride.Physics
 {
@@ -14,13 +14,6 @@ namespace Stride.Physics
     [Display(50, "Capsule")]
     public class CapsuleColliderShapeDesc : IInlineColliderShapeDesc
     {
-        /// <userdoc>
-        /// Select this if this shape will represent a 2D shape
-        /// </userdoc>
-        [DataMember(10)]
-        [DefaultValue(false)]
-        public bool Is2D;
-
         /// <userdoc>
         /// The length of the capsule (distance between the center of the two sphere centers).
         /// </userdoc>
@@ -36,17 +29,10 @@ namespace Stride.Physics
         public float Radius = 0.25f;
 
         /// <userdoc>
-        /// The orientation of the capsule.
-        /// </userdoc>
-        [DataMember(40)]
-        [DefaultValue(ShapeOrientation.UpY)]
-        public ShapeOrientation Orientation = ShapeOrientation.UpY;
-
-        /// <userdoc>
-        /// The offset with the real graphic mesh.
+        /// The local offset of the collider shape.
         /// </userdoc>
         [DataMember(50)]
-        public Vector3 LocalOffset;
+        public Vector3 LocalOffset = Vector3.Zero;
 
         /// <userdoc>
         /// The local rotation of the collider shape.
@@ -57,17 +43,21 @@ namespace Stride.Physics
         public bool Match(object obj)
         {
             var other = obj as CapsuleColliderShapeDesc;
-            return other?.Is2D == Is2D &&
+            return other != null &&
                    Math.Abs(other.Length - Length) < float.Epsilon &&
                    Math.Abs(other.Radius - Radius) < float.Epsilon &&
-                   other.Orientation == Orientation &&
                    other.LocalOffset == LocalOffset &&
                    other.LocalRotation == LocalRotation;
         }
 
-        public ColliderShape CreateShape()
+
+        public ColliderShape CreateShape(Simulation simulation, ContentManager content)
         {
-            return new CapsuleColliderShape(Is2D, Radius, Length, Orientation) { LocalOffset = LocalOffset, LocalRotation = LocalRotation };
+            return new CapsuleColliderShape(simulation, Radius, Length)
+            {
+                LocalOffset = LocalOffset,
+                LocalRotation = LocalRotation
+            };
         }
     }
 }
