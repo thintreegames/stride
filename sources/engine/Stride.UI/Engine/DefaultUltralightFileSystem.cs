@@ -4,14 +4,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Stride.UI;
 
-using ImpromptuNinjas.UltralightSharp;
-using String = ImpromptuNinjas.UltralightSharp.String;
 using System.Collections.Generic;
 using Stride.Core.Serialization.Contents;
 using Stride.Core.Assets;
 using Stride.Engine;
 using System.Text.Unicode;
 using System.Text;
+using UltralightNet;
 
 namespace Stride.UI
 {
@@ -33,129 +32,109 @@ namespace Stride.UI
             openFiles = new Dictionary<int, FileHeader>();
         }
 
-        public long ReadFromFile(UIntPtr handle, sbyte* data, long length)
+        public long ReadFromFile(int handle, out byte[] data, long length)
         {
-            byte* handlePtr = (byte*)handle.ToPointer();
-            if (openFiles.TryGetValue(*(int*)handle.ToPointer(), out var fileHeader))
+            if (handle == 0)
+            {
+                data = new byte[0];
+                return 0;
+            }
+
+            if (openFiles.TryGetValue(handle, out var fileHeader))
             {
                 var rawAsset = Content.Get<UltralightContent>(fileHeader.ContentPath);
 
                 if (rawAsset == null)
                 {
+                    data = new byte[0];
                     return 0;
                 }
 
-                var htmlData = Encoding.UTF8.GetBytes(rawAsset.Content);
-
-                UnmanagedMemoryStream writeStream = new UnmanagedMemoryStream((byte*)data, htmlData.Length, htmlData.Length, FileAccess.Write);
-                writeStream.Write(htmlData, 0, htmlData.Length);
-                writeStream.Close();
-
-                return htmlData.Length;
+                data = Encoding.UTF8.GetBytes(rawAsset.Content);
+                return data.Length;
             }
             else
             {
+                data = new byte[0];
                 return 0;
             }
         }
 
-        public UIntPtr OpenFile(String* path, bool openForWriting)
+        public int OpenFile(string path, bool open_for_writing)
         {
             if (!FileExists(path))
             {
-                return UIntPtr.Zero;
+                return 0;
             }
 
-            Content.Load<UltralightContent>(path->Read());
+            Content.Load<UltralightContent>(path);
 
             int fileID = LastFileID++;
             openFiles.Add(fileID, new FileHeader
             {
-                ContentPath = path->Read()
+                ContentPath = path
             });
 
-            IntPtr memIntPtr = Marshal.AllocHGlobal(sizeof(int));
-            byte* memBytePtr = (byte*)memIntPtr.ToPointer();
-
-            Span<int> span = new Span<int>(memBytePtr, 1);
-            span.Fill(fileID);
-
-            return (UIntPtr)memBytePtr;
+            return fileID;
         }
 
-        private void FileSystemWatcher_Changed(object sender, FileSystemEventArgs e)
+        public bool GetFileSize(int fileHandle, out long result)
         {
-            if (e.ChangeType != WatcherChangeTypes.Changed)
+            if (fileHandle == 0)
             {
-                return;
-            }
-
-            UltralightDefaults.HotReload?.Invoke();
-        }
-
-        public bool GetFileSize(UIntPtr handle, long* result)
-        {
-            if (handle == UIntPtr.Zero)
-            {
-                *result = 0;
+                result = 0;
                 return false;
             }
             else
             {
-                byte* handlePtr = (byte*)handle.ToPointer();
-                if (openFiles.TryGetValue(*(int*)handle.ToPointer(), out var fileHeader))
+                if (openFiles.TryGetValue(fileHandle, out var fileHeader))
                 {
                     var rawAsset = Content.Get<UltralightContent>(fileHeader.ContentPath);
 
                     if (rawAsset == null)
                     {
-                        *result = 0;
+                        result = 0;
                         return false;
                     }
 
-                    *result = Encoding.UTF8.GetByteCount(rawAsset.Content);
+                    result = Encoding.UTF8.GetByteCount(rawAsset.Content);
                     return true;
                 }
 
-                *result = 0;
+                result = 0;
                 return false;
             }
         }
 
-        public void CloseFile(UIntPtr handle)
+        public void CloseFile(int handle)
         {
-            if (handle == UIntPtr.Zero)
-            {
-                return;
-            }
+            if (handle == 0) return;
 
-            byte* handlePtr = (byte*)handle.ToPointer();
-            int openFileId = *(int*)handlePtr;
-
-            if (openFiles.TryGetValue(openFileId, out var fileHeader))
+            if (openFiles.TryGetValue(handle, out var fileHeader))
             {
                 Content.Unload(fileHeader.ContentPath);
             }
 
-            openFiles.Remove(openFileId);
-
-            Marshal.FreeHGlobal((IntPtr)handlePtr);
+            openFiles.Remove(handle);
         }
 
-        public bool GetFileMimeType(String* path, String* result)
+        public bool GetFileMimeType(IntPtr ptrPath, IntPtr result)
         {
-            var rawAsset = Content.Get<UltralightContent>(path->Read());
+            var path = ULStringMarshaler.NativeToManaged(ptrPath);
+
+            var rawAsset = Content.Get<UltralightContent>(path);
 
             if (rawAsset == null)
             {
+                Methods.ulStringAssignCString(result, "");
                 return false;
             }
 
-            Ultralight.StringAssignString(result, String.Create(rawAsset.MimeType));
+            Methods.ulStringAssignCString(result, rawAsset.MimeType);
             return true;
         }
 
-        public bool FileExists(String* path) => Content.Exists(path->Read());
+        public bool FileExists(string path) => Content.Exists(path);
 
     }
 }
