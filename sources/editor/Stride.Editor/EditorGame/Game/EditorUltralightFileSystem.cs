@@ -6,11 +6,10 @@ using Stride.Core.Assets;
 using Stride.Core.Assets.Editor.ViewModel;
 using Stride.UI;
 
-using ImpromptuNinjas.UltralightSharp;
-using String = ImpromptuNinjas.UltralightSharp.String;
 using System.Collections.Generic;
 using Stride.Assets.UI;
 using System.Text;
+using UltralightNet;
 
 namespace Stride.Editor.EditorGame.Game
 {
@@ -36,35 +35,33 @@ namespace Stride.Editor.EditorGame.Game
             pathFileSystemWatchers = new Dictionary<string, FileSystemWatcher>();
         }
 
-        public long ReadFromFile(UIntPtr handle, sbyte* data, long length)
+        public long ReadFromFile(int handle, out byte[] data, long length)
         {
-            byte* handlePtr = (byte*)handle.ToPointer();
-            if (openFiles.TryGetValue(*(int*)handle.ToPointer(), out var fileHeader))
+            if (handle == 0)
             {
-                var html = File.ReadAllText(fileHeader.FilePath);
+                data = new byte[0];
+                return 0;
+            }
 
-                var htmlData = Encoding.UTF8.GetBytes(html);
-
-                UnmanagedMemoryStream writeStream = new UnmanagedMemoryStream((byte*)data, htmlData.Length, htmlData.Length, FileAccess.Write);
-                writeStream.Write(htmlData, 0, htmlData.Length);
-                writeStream.Close();
-
-                return html.Length;
+            if (openFiles.TryGetValue(handle, out var fileHeader))
+            {
+                data = File.ReadAllBytes(fileHeader.FilePath);
+                return fileHeader.FileSize;
             }
             else
             {
+                data = new byte[0];
                 return 0;
             }
         }
 
-        public UIntPtr OpenFile(String* path, bool openForWriting)
+        public int OpenFile(string path, bool open_for_writing)
         {
-            var assetLoc = path->Read();
-            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == assetLoc);
+            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
 
             if (assetViewModel == null || assetViewModel.Asset is not UltralightContentAsset ultralightContentAsset)
             {
-                return UIntPtr.Zero;
+                return 0;
             }
 
             FileInfo file = new FileInfo(ultralightContentAsset.Source.FullPath);
@@ -89,13 +86,7 @@ namespace Stride.Editor.EditorGame.Game
                 FileSize = file.Length
             });
 
-            IntPtr memIntPtr = Marshal.AllocHGlobal(sizeof(int));
-            byte* memBytePtr = (byte*)memIntPtr.ToPointer();
-
-            Span<int> span = new Span<int>(memBytePtr, 1);
-            span.Fill(fileID);
-
-            return (UIntPtr)memBytePtr;
+            return fileID;
         }
 
         private void FileSystemWatcher_Changed(object sender, FileSystemEventArgs e)
@@ -105,99 +96,81 @@ namespace Stride.Editor.EditorGame.Game
                 return;
             }
 
-            UltralightDefaults.HotReload?.Invoke();
+            //UltralightDefaults.HotReload?.Invoke();
         }
 
-        public bool GetFileSize(UIntPtr handle, long* result)
+        public bool GetFileSize(int fileHandle, out long result)
         {
-            if (handle == UIntPtr.Zero)
+            if (fileHandle == 0)
             {
-                *result = 0;
+                result = 0;
                 return false;
             }
             else
             {
-                byte* handlePtr = (byte*)handle.ToPointer();
-                if (openFiles.TryGetValue(*(int*)handle.ToPointer(), out var fileHeader))
+                if (openFiles.TryGetValue(fileHandle, out var fileHeader))
                 {
-                    *result = fileHeader.FileSize;
+                    result = fileHeader.FileSize;
                     return true;
                 }
 
-                *result = 0;
+                result = 0;
                 return false;
             }
         }
 
-        public void CloseFile(UIntPtr handle)
+        public void CloseFile(int handle)
         {
-            if (handle == UIntPtr.Zero)
+            if (handle == 0)
             {
                 return;
             }
 
-            byte* handlePtr = (byte*)handle.ToPointer();
-            int openFileId = *(int*)handlePtr;
-            openFiles.Remove(openFileId);
-            Marshal.FreeHGlobal((IntPtr)handlePtr);
+            openFiles.Remove(handle);
         }
 
-        public bool GetFileMimeType(String* path, String* result)
+        public bool GetFileMimeType(IntPtr ptrPath, IntPtr result)
         {
-            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path->Read());
+            var path = ULStringMarshaler.NativeToManaged(ptrPath);
+
+            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
 
             if (assetViewModel == null || assetViewModel.Asset is not UltralightContentAsset ultralightContentAsset)
             {
+                Methods.ulStringAssignCString(result, "");
                 return false;
             }
 
+            string mimeType = string.Empty;
             switch (Path.GetExtension(ultralightContentAsset.Source.FullPath).ToLower())
             {
                 case ".html":
                     {
-                        Ultralight.StringAssignString(result, String.Create("text/html"));
+                        Methods.ulStringAssignCString(result, "text/html");
                         return true;
                     }
                 case ".css":
                     {
-                        Ultralight.StringAssignString(result, String.Create("text/css"));
-                        return true;
-                    }
-                case ".jpg":
-                    {
-                        Ultralight.StringAssignString(result, String.Create("image/jpeg"));
-                        return true;
-                    }
-                case ".jpeg":
-                    {
-                        Ultralight.StringAssignString(result, String.Create("image/jpeg"));
-                        return true;
-                    }
-                case ".png":
-                    {
-                        Ultralight.StringAssignString(result, String.Create("image/png"));
+                        Methods.ulStringAssignCString(result, "text/css");
                         return true;
                     }
                 case ".js":
                     {
-                        Ultralight.StringAssignString(result, String.Create("text/javascript"));
+                        Methods.ulStringAssignCString(result, "text/javascript");
                         return true;
                     }
                 default:
-                    return false;
+                    {
+                        Methods.ulStringAssignCString(result, string.Empty);
+                        return false;
+                    }
             }
         }
 
-        public bool FileExists(String* path)
+        public bool FileExists(string path)
         {
-            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path->Read());
-
-            if (assetViewModel == null || assetViewModel.Asset is not UltralightContentAsset ultralightContentAsset)
-            {
-                return false;
-            }
-
-            return true;
+            var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
+            return assetViewModel != null && assetViewModel.Asset is UltralightContentAsset ultralightContentAsset;
         }
 
     }

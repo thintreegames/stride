@@ -49,9 +49,6 @@
   <!-- Resources -->
   <ItemGroup>
     <None Include="Resources\*.png" />
-    <Reference Include="ImpromptuNinjas.UltralightSharp">
-      <HintPath>..\..\..\deps\Ultralight\ImpromptuNinjas.UltralightSharp.dll</HintPath>
-    </Reference>
     <Compile Update="Resources\DefaultThumbnails.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

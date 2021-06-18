@@ -1,54 +1,34 @@
-using ImpromptuNinjas.UltralightSharp.Enums;
-using ImpromptuNinjas.UltralightSharp.Safe;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks.Dataflow;
 using Stride.Core;
 using Stride.Core.Mathematics;
-using Stride.Graphics;
-using Stride.UI;
-using Stride.UI.Controls;
-using Stride.UI.Renderers;
-using Color = Stride.Core.Mathematics.Color;
-using String = ImpromptuNinjas.UltralightSharp.String;
-
-using JavaScriptCore = ImpromptuNinjas.UltralightSharp.JavaScriptCore;
-using JsValue = ImpromptuNinjas.UltralightSharp.JsValue;
-using JsContext = ImpromptuNinjas.UltralightSharp.JsContext;
-using Stride.Input;
-using MouseButton = ImpromptuNinjas.UltralightSharp.Enums.MouseButton;
-using KeyEvent = ImpromptuNinjas.UltralightSharp.Safe.KeyEvent;
+using Stride.Core.Serialization.Contents;
 using Stride.Games;
-using System;
+using Stride.Graphics;
+using Stride.UI.Controls;
+using Stride.UI.Engine;
+using TextCopy;
+using UltralightNet;
+using UltralightNet.AppCore;
+using Color = Stride.Core.Mathematics.Color;
 
 namespace Stride.UI.Renderers
 {
     public class DefaultHtmlRenderer : ElementRenderer
     {
-        //private volatile bool hotReload;
-
-        private Renderer renderer;
-
-        private bool init;
+        private static bool init;
 
         public DefaultHtmlRenderer(IServiceRegistry services)
             : base(services)
         {
             if (!init)
             {
-                UltralightDefaults.Load(services);
-
-                renderer = new Renderer(UltralightDefaults.DefaultConfig);
-
+                UltralightThreaded.Load(services);
                 init = true;
             }
-
-            //UltralightDefaults.HotReload += () => hotReload = true;
         }
-
-        protected override void Destroy()
-        {
-            base.Destroy();
-
-            renderer.Dispose();
-        }    
 
         public override void RenderColor(UIElement element, UIRenderingContext context)
         {
@@ -57,18 +37,23 @@ namespace Stride.UI.Renderers
             var htmlControl = (HtmlControl)element;
             if (htmlControl == null) return;
 
-            if (htmlControl.ViewRender == null)
+            if (htmlControl.SessionGuid == Guid.Empty)
             {
-                htmlControl.Init(renderer, 1280, 720);
-                return;
+                htmlControl.SessionGuid = Guid.NewGuid();
+                uint width = (uint)context.Resolution.X;
+                uint height = (uint)context.Resolution.Y;
+
+                UltralightThreaded.CreateSession(htmlControl.SessionGuid, width, height);
+                UltralightThreaded.LoadUrl(htmlControl.SessionGuid, htmlControl.Url);
             }
 
-            if (htmlControl.ViewRender.IsLoading()) return;
+            if (!UltralightThreaded.IsSessionReady(htmlControl.SessionGuid)) return;
 
-            renderer.Update();
-            renderer.Render();
+            var view = UltralightThreaded.GetSessionView(htmlControl.SessionGuid);
 
-            var cachedTexture = htmlControl.GetCacheTexture(GraphicsDevice, context.GraphicsContext);
+            if (view == null) return;
+
+            var cachedTexture = htmlControl.GetCacheTexture(view, GraphicsDevice, context.GraphicsContext);
 
             if (cachedTexture != null)
             {

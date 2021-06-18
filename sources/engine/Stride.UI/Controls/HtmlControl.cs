@@ -1,27 +1,15 @@
-using ImpromptuNinjas.UltralightSharp.Enums;
-using ImpromptuNinjas.UltralightSharp.Safe;
 using Stride.Core;
 using Stride.Games;
 using Stride.Graphics;
-using Stride.UI;
-using Stride.UI.Controls;
+using Stride.Input;
+using Stride.UI.Engine;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using String = ImpromptuNinjas.UltralightSharp.String;
-
-using JavaScriptCore = ImpromptuNinjas.UltralightSharp.JavaScriptCore;
-using JsValue = ImpromptuNinjas.UltralightSharp.JsValue;
-using JsContext = ImpromptuNinjas.UltralightSharp.JsContext;
-using Stride.Input;
-using MouseButton = ImpromptuNinjas.UltralightSharp.Enums.MouseButton;
-using KeyEvent = ImpromptuNinjas.UltralightSharp.Safe.KeyEvent;
 using System.ComponentModel;
-using Stride.Core.Mathematics;
-using Stride.Core.IO;
-using Stride.Core.Assets;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using UltralightNet;
 
 namespace Stride.UI.Controls
 {
@@ -49,14 +37,6 @@ namespace Stride.UI.Controls
         private Texture cachedTexture;
         private InputManager input;
 
-        private volatile bool hotReload;
-
-        [DataMemberIgnore]
-        public Session Session;
-
-        [DataMemberIgnore]
-        public View ViewRender;
-
         private List<(string, MethodInfo, HtmlViewModel)> jsFunctions;
 
         private string url;
@@ -77,6 +57,8 @@ namespace Stride.UI.Controls
             }
         }
 
+        [DataMemberIgnore]
+        public Guid SessionGuid;
 
         public HtmlControl()
         {
@@ -84,48 +66,45 @@ namespace Stride.UI.Controls
             jsFunctions = new List<(string, MethodInfo, HtmlViewModel)>();
         }
 
-        internal void Init(Renderer renderer, uint resWidth, uint resHeight)
+        public void CreateSession(uint width, uint height)
         {
-            Session = new Session(renderer, true, string.IsNullOrEmpty(Name) ? "htmlControl" : Name);
+            //View.SetAddConsoleMessageCallback(ConsoleMessageCallback);
+            //View.SetDOMReadyCallback(DomReady);
 
-            ViewRender = new View(renderer, resWidth, resHeight, true, Session);
+            //View.SetFinishLoadingCallback((user_data, caller, frame_id, is_main_frame, url) =>
+            //{
+            //    loaded = true;
+            //});
 
-            var gch = GCHandle.Alloc(this);
-            var gchPtr = GCHandle.ToIntPtr(gch);
-
-            ViewRender.SetAddConsoleMessageCallback(ConsoleMessageCallback, gchPtr);
-            ViewRender.SetDomReadyCallback(DomReady, gchPtr);
-
-            ViewRender.Focus();
-
-            ViewRender.LoadUrl(Url);
         }
 
-        private void ConsoleMessageCallback(IntPtr userData, View caller, MessageSource source,
-            MessageLevel level, string message, uint lineNumber, uint columnNumber, string sourceId)
+
+        private void ConsoleMessageCallback(IntPtr user_data, View caller, ULMessageSource source, ULMessageLevel level,
+            string message, uint lineNumber, uint columnNumber, string sourceId)
         {
             switch (level)
             {
                 default:
                     System.Diagnostics.Debug.WriteLine($"[Ultralight Console] [{level}] {sourceId}:{lineNumber}:{columnNumber} {message}");
                     break;
-                case MessageLevel.Error:
+                case ULMessageLevel.Error:
                     System.Diagnostics.Debug.WriteLine($"[Ultralight Console] {sourceId}:{lineNumber}:{columnNumber} {message}");
                     break;
-                case MessageLevel.Warning:
+                case ULMessageLevel.Warning:
                     System.Diagnostics.Debug.WriteLine($"[Ultralight Console] {sourceId}:{lineNumber}:{columnNumber} {message}");
                     break;
             }
         }
 
-        private void DomReady(IntPtr userData, View caller, ulong frameId, bool isMainFrame, string url)
+        private void DomReady(IntPtr user_data, View caller, ulong frame_id, bool is_main_frame, string url)
         {
             foreach (var jsFunction in jsFunctions)
             {
-                RegisterGlobalJsFunc(caller, jsFunction.Item1, jsFunction.Item2, jsFunction.Item3);
+                //RegisterGlobalJsFunc(caller, jsFunction.Item1, jsFunction.Item2, jsFunction.Item3);
             }
         }
 
+        /*
         public void RegisterViewModel(HtmlViewModel viewModel)
         {
             var methods = viewModel.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -203,37 +182,42 @@ namespace Stride.UI.Controls
             }
 
             caller.UnlockJsContext();
-        }
+        }*/
 
         protected override void OnTouchDown(TouchEventArgs args)
         {
             base.OnTouchDown(args);
 
-            int screenX = (int)(args.ScreenPosition.X * ViewRender.GetWidth());
-            int screenY = (int)(args.ScreenPosition.Y * ViewRender.GetHeight());
+            if (SessionGuid == Guid.Empty) return;
 
-            ViewRender.FireMouseEvent(new MouseEvent(MouseEventType.MouseDown, screenX, screenY, MouseButton.Left));
+            int screenX = (int)(args.ScreenPosition.X * args.Source.ActualWidth);
+            int screenY = (int)(args.ScreenPosition.Y * args.Source.ActualHeight);
+
+            UltralightThreaded.FireMouseEvent(SessionGuid, new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseDown, screenX, screenY, ULMouseEvent.Button.Left));
         }
 
         protected override void OnTouchUp(TouchEventArgs args)
         {
             base.OnTouchUp(args);
 
-            int screenX = (int)(args.ScreenPosition.X * ViewRender.GetWidth());
-            int screenY = (int)(args.ScreenPosition.Y * ViewRender.GetHeight());
+            if (SessionGuid == Guid.Empty) return;
 
-            ViewRender.FireMouseEvent(new MouseEvent(MouseEventType.MouseUp, screenX, screenY, MouseButton.Left));
+            int screenX = (int)(args.ScreenPosition.X * args.Source.ActualWidth);
+            int screenY = (int)(args.ScreenPosition.Y * args.Source.ActualHeight);
+
+            UltralightThreaded.FireMouseEvent(SessionGuid, new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseUp, screenX, screenY, ULMouseEvent.Button.Left));
         }
-
 
         protected override void OnTouchMove(TouchEventArgs args)
         {
             base.OnTouchMove(args);
 
-            int screenX = (int)(args.ScreenPosition.X * ViewRender.GetWidth());
-            int screenY = (int)(args.ScreenPosition.Y * ViewRender.GetHeight());
+            if (SessionGuid == Guid.Empty) return;
 
-            ViewRender.FireMouseEvent(new MouseEvent(MouseEventType.MouseMoved, screenX, screenY, MouseButton.None));
+            int screenX = (int)(args.ScreenPosition.X * args.Source.ActualWidth);
+            int screenY = (int)(args.ScreenPosition.Y * args.Source.ActualHeight);
+
+            UltralightThreaded.FireMouseEvent(SessionGuid, new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseMoved, screenX, screenY, ULMouseEvent.Button.None));
         }
 
         protected override void Update(GameTime time)
@@ -245,111 +229,83 @@ namespace Stride.UI.Controls
                 input = UIElementServices.Services?.GetService<InputManager>();
                 return;
             }
-            else if (ViewRender != null)
-            {
-                if (hotReload && !ViewRender.IsLoading())
-                {
-                    if (!string.IsNullOrEmpty(Url))
-                    {
-                        ViewRender.LoadUrl(Url);
-                        ViewRender.Reload();
-                        cachedTexture = null;
-                    }
-                    hotReload = false;
-                }
-            }
 
             if (input != null)
             {
-                uint modifiers = 0;
+                ULKeyEventModifiers modifiers = 0;
 
                 if (input.IsKeyDown(Keys.LeftAlt) ||
                     input.IsKeyDown(Keys.RightAlt))
                 {
-                    modifiers = 1 << 0;
+                    modifiers |= ULKeyEventModifiers.AltKey;
                 }
 
 
                 if (input.IsKeyDown(Keys.LeftCtrl) ||
                     input.IsKeyDown(Keys.RightCtrl))
                 {
-                    modifiers = 1 << 1;
+                    modifiers |= ULKeyEventModifiers.CtrlKey;
                 }
 
                 if (input.IsKeyDown(Keys.LeftWin) ||
                     input.IsKeyDown(Keys.RightWin))
                 {
-                    modifiers = 1 << 2;
+                    modifiers |= ULKeyEventModifiers.MetaKey;
                 }
 
                 if (input.IsKeyDown(Keys.LeftShift) ||
                     input.IsKeyDown(Keys.RightShift))
                 {
-                    modifiers = 1 << 3;
+                    modifiers |= ULKeyEventModifiers.ShiftKey;
                 }
 
                 foreach (var key in input.PressedKeys)
                 {
                     var ultralightKey = new StrideKey2UtlraLight(key);
+                    var ultraLightText = ultralightKey.GetText();
 
-                    unsafe
+                    if (modifiers == 0 || modifiers.HasFlag(ULKeyEventModifiers.ShiftKey))
                     {
-                        var ultraLightText = ultralightKey.GetText();
-
-                        var text = String.Create(ultraLightText);
-                        var modifiedText = String.Create("");
-
-                        if (modifiers == 0 || modifiers == 1 << 3)
+                        if (ultraLightText != null)
                         {
-                            if (ultraLightText != null)
-                            {
-                                ViewRender.FireKeyEvent(new KeyEvent(KeyEventType.Char,
-                                    modifiers,
-                                    ultralightKey.GetVirtualKeyCode(),
-                                    0,
-                                    text,
-                                    text,
-                                    false,
-                                    false,
-                                    ultralightKey.IsSystemKey()));
-                            }
+                            UltralightThreaded.FireKeyEvent(SessionGuid, new ULKeyEvent(ULKeyEventType.Char,
+                                modifiers,
+                                ultralightKey.GetVirtualKeyCode(),
+                                0,
+                                ultraLightText,
+                                "",
+                                false,
+                                false,
+                                ultralightKey.IsSystemKey()));
                         }
-
-                        ViewRender.FireKeyEvent(new KeyEvent(KeyEventType.RawKeyDown,
-                            modifiers,
-                            ultralightKey.GetVirtualKeyCode(),
-                            0,
-                            text,
-                            text,
-                            ultralightKey.IsKeypad(),
-                            false,
-                            ultralightKey.IsSystemKey()));
                     }
+
+                    UltralightThreaded.FireKeyEvent(SessionGuid, new ULKeyEvent(ULKeyEventType.RawKeyDown,
+                        modifiers,
+                        ultralightKey.GetVirtualKeyCode(),
+                        0,
+                        "",
+                        "",
+                        ultralightKey.IsKeypad(),
+                        false,
+                        ultralightKey.IsSystemKey()));
                 }
 
                 foreach (var key in input.ReleasedKeys)
                 {
                     var ultralightKey = new StrideKey2UtlraLight(key);
 
-                    unsafe
-                    {
-                        var text = String.Create(ultralightKey.GetText());
-                        var modifiedText = String.Create("");
-
-                        ViewRender.FireKeyEvent(new KeyEvent(KeyEventType.KeyUp,
+                    UltralightThreaded.FireKeyEvent(SessionGuid, new ULKeyEvent(ULKeyEventType.KeyUp,
                             modifiers,
                             ultralightKey.GetVirtualKeyCode(),
                             0,
-                            text,
-                            modifiedText,
+                            "",
+                            "",
                             ultralightKey.IsKeypad(),
                             false,
                             ultralightKey.IsSystemKey()));
-                    }
                 }
             }
-
-
         }
 
         /// <summary>
@@ -358,32 +314,34 @@ namespace Stride.UI.Controls
         /// </summary>
         protected virtual void OnUrlChanged()
         {
-            if (ViewRender != null)
-            {
-                LoadUrl(Url);
-            }
+            if (string.IsNullOrEmpty(Url)) return;
+
+            if (SessionGuid == Guid.Empty) return;
+
+            UltralightThreaded.LoadUrl(SessionGuid, Url);
 
             InvalidateMeasure();
         }
 
         public void LoadHtml(string html)
         {
-            ViewRender.LoadHtml(html);
+
         }
 
         public void LoadUrl(string url)
         {
-            if (!ViewRender.IsLoading())
-            {
-                ViewRender.LoadUrl(url);
-            }
+            if (string.IsNullOrEmpty(url)) return;
+
+            if (SessionGuid == Guid.Empty) return;
+
+            UltralightThreaded.LoadUrl(SessionGuid, url);
         }
 
-        public Texture GetCacheTexture(GraphicsDevice device, GraphicsContext context)
+        public Texture GetCacheTexture(View view, GraphicsDevice device, GraphicsContext context)
         {
-            var surface = ViewRender.GetSurface();
+            var surface = view.Surface;
 
-            if (cachedTexture == null || !surface.GetDirtyBounds().IsEmpty())
+            if (cachedTexture == null || !surface.DirtyBounds.IsEmpty)
             {
                 if (cachedTexture != null)
                 {
@@ -391,12 +349,12 @@ namespace Stride.UI.Controls
                     cachedTexture = null;
                 }
 
-                var bitmap = surface.GetBitmap();
+                var bitmap = surface.Bitmap;
                 var pixels = bitmap.LockPixels();
 
-                cachedTexture = Texture.New2D(device, (int)ViewRender.GetWidth(), (int)ViewRender.GetHeight(), PixelFormat.B8G8R8A8_UNorm);
+                cachedTexture = Texture.New2D(device, (int)view.Width, (int)view.Height, PixelFormat.B8G8R8A8_UNorm_SRgb);
 
-                cachedTexture.SetData(context.CommandList, new DataPointer(pixels, (int)bitmap.GetSize().ToUInt64()));
+                cachedTexture.SetData(context.CommandList, new DataPointer(pixels, (int)bitmap.Size));
 
                 bitmap.UnlockPixels();
 
