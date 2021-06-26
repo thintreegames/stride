@@ -66,19 +66,6 @@ namespace Stride.UI.Controls
             jsFunctions = new List<(string, MethodInfo, HtmlViewModel)>();
         }
 
-        public void CreateSession(uint width, uint height)
-        {
-            //View.SetAddConsoleMessageCallback(ConsoleMessageCallback);
-            //View.SetDOMReadyCallback(DomReady);
-
-            //View.SetFinishLoadingCallback((user_data, caller, frame_id, is_main_frame, url) =>
-            //{
-            //    loaded = true;
-            //});
-
-        }
-
-
         private void ConsoleMessageCallback(IntPtr user_data, View caller, ULMessageSource source, ULMessageLevel level,
             string message, uint lineNumber, uint columnNumber, string sourceId)
         {
@@ -96,15 +83,6 @@ namespace Stride.UI.Controls
             }
         }
 
-        private void DomReady(IntPtr user_data, View caller, ulong frame_id, bool is_main_frame, string url)
-        {
-            foreach (var jsFunction in jsFunctions)
-            {
-                //RegisterGlobalJsFunc(caller, jsFunction.Item1, jsFunction.Item2, jsFunction.Item3);
-            }
-        }
-
-        /*
         public void RegisterViewModel(HtmlViewModel viewModel)
         {
             var methods = viewModel.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -124,6 +102,23 @@ namespace Stride.UI.Controls
             }
         }
 
+        public void InitSession()
+        {
+            foreach (var jsFunction in jsFunctions)
+            {
+                UltralightThreaded.RegisterCallback(SessionGuid, jsFunction.Item1, jsFunction.Item3, jsFunction.Item2);
+            }
+        }
+
+        public void Eval(string javascript)
+        {
+            if (SessionGuid != Guid.Empty)
+            {
+                UltralightThreaded.Eval(SessionGuid, javascript);
+            }
+        }
+
+        /*
         private void RegisterGlobalJsFunc(View caller, string jsFuncName, MethodInfo safeJsFunc, HtmlViewModel viewModel)
         {
             unsafe
@@ -182,7 +177,7 @@ namespace Stride.UI.Controls
             }
 
             caller.UnlockJsContext();
-        }*/
+        }
 
         protected override void OnTouchDown(TouchEventArgs args)
         {
@@ -207,6 +202,7 @@ namespace Stride.UI.Controls
 
             UltralightThreaded.FireMouseEvent(SessionGuid, new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseUp, screenX, screenY, ULMouseEvent.Button.Left));
         }
+        */
 
         protected override void OnTouchMove(TouchEventArgs args)
         {
@@ -223,7 +219,7 @@ namespace Stride.UI.Controls
         protected override void Update(GameTime time)
         {
             base.Update(time);
-
+            
             if (input == null)
             {
                 input = UIElementServices.Services?.GetService<InputManager>();
@@ -257,6 +253,32 @@ namespace Stride.UI.Controls
                     input.IsKeyDown(Keys.RightShift))
                 {
                     modifiers |= ULKeyEventModifiers.ShiftKey;
+                }
+
+                if (input.IsMouseButtonPressed(MouseButton.Left) || input.IsMouseButtonPressed(MouseButton.Right) || input.IsMouseButtonPressed(MouseButton.Middle))
+                {
+                    var mousePosX = (int)(input.MousePosition.X * ActualWidth);
+                    var mousePosY = (int)(input.MousePosition.Y * ActualHeight);
+
+                    var buttonType = input.IsMouseButtonPressed(MouseButton.Left) ? ULMouseEvent.Button.Left :
+                        input.IsMouseButtonPressed(MouseButton.Right) ? ULMouseEvent.Button.Right :
+                        input.IsMouseButtonPressed(MouseButton.Middle) ? ULMouseEvent.Button.Middle : ULMouseEvent.Button.None;
+
+                    var mouseEvent = new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseDown, mousePosX, mousePosY, buttonType);
+                    UltralightThreaded.FireMouseEvent(SessionGuid, mouseEvent);
+                }
+
+                if (input.IsMouseButtonReleased(MouseButton.Left) || input.IsMouseButtonReleased(MouseButton.Right) || input.IsMouseButtonReleased(MouseButton.Middle))
+                {
+                    var mousePosX = (int)(input.MousePosition.X * ActualWidth);
+                    var mousePosY = (int)(input.MousePosition.Y * ActualHeight);
+
+                    var buttonType = input.IsMouseButtonPressed(MouseButton.Left) ? ULMouseEvent.Button.Left :
+                        input.IsMouseButtonPressed(MouseButton.Right) ? ULMouseEvent.Button.Right :
+                        input.IsMouseButtonPressed(MouseButton.Middle) ? ULMouseEvent.Button.Middle : ULMouseEvent.Button.None;
+
+                    var mouseEvent = new ULMouseEvent(ULMouseEvent.ULMouseEventType.MouseUp, mousePosX, mousePosY, buttonType);
+                    UltralightThreaded.FireMouseEvent(SessionGuid, mouseEvent);
                 }
 
                 foreach (var key in input.PressedKeys)
@@ -368,5 +390,4 @@ namespace Stride.UI.Controls
         {
         }
     }
-
 }
