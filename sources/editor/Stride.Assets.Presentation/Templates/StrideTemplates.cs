@@ -22,6 +22,7 @@ namespace Stride.Assets.Presentation.Templates
             TemplateManager.Register(SkyboxFactoryTemplateGenerator.Default);
             TemplateManager.Register(GraphicsCompositorTemplateGenerator.Default);
             TemplateManager.Register(ScriptTemplateGenerator.Default);
+            TemplateManager.Register(HtmlTemplateGenerator.Default);
             TemplateManager.Register(SpriteSheetFromFileTemplateGenerator.Default);
             TemplateManager.Register(ModelFromFileTemplateGenerator.Default);
             TemplateManager.Register(SkeletonFromFileTemplateGenerator.Default);
