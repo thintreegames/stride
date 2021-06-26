@@ -1,0 +1,10 @@
+!TemplateAsset
+Id: 2BAB7EFD-9C29-4817-9A08-A81E7895399C
+AssetTypeName: HtmlFileAsset
+Name: Html
+Scope: Asset
+Description: A html file
+Group: Script
+Order: -99
+Icon: ..\.sdtpl\SourceCode.png
+DefaultOutputName: Html

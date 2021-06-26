@@ -1,198 +1,129 @@
-// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
-// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
-
+using Stride.Core;
 using Stride.Core.Mathematics;
 
-namespace Stride.Physics
+namespace Stride.Physics.Constraints
 {
-    public class HingeConstraint : Constraint
+    [DataContract("HingeConstraint")]
+    [Display("Hinge Constraint")]
+    public class HingeConstraint : PhysicsConstraintComponent
     {
-        /// <summary>
-        /// Sets the frames.
-        /// </summary>
-        /// <param name="frameA">The frame a.</param>
-        /// <param name="frameB">The frame b.</param>
-        public void SetFrames(Matrix frameA, Matrix frameB)
+        public RigidbodyComponent BodyA { get; set; }
+        public RigidbodyComponent BodyB { get; set; }
+
+        private Vector3 localHingeAxisA;
+        public Vector3 LocalHingeAxisA
         {
-            InternalHingeConstraint.SetFrames(frameA, frameB);
+            get => localHingeAxisA;
+            set
+            {
+                localHingeAxisA = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether [angular only].
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if [angular only]; otherwise, <c>false</c>.
-        /// </value>
-        public bool AngularOnly
+        private Vector3 localHingeAxisB;
+        public Vector3 LocalHingeAxisB
         {
-            get { return InternalHingeConstraint.AngularOnly; }
-            set { InternalHingeConstraint.AngularOnly = value; }
+            get => localHingeAxisB;
+            set
+            {
+                localHingeAxisB = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets the hinge angle.
-        /// </summary>
-        /// <value>
-        /// The hinge angle.
-        /// </value>
-        public float HingeAngle
+        private Vector3 localOffsetA;
+        public Vector3 LocalOffsetA
         {
-            get { return InternalHingeConstraint.HingeAngle; }
+            get => localOffsetA;
+            set
+            {
+                localOffsetA = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets or sets the maximum motor impulse.
-        /// </summary>
-        /// <value>
-        /// The maximum motor impulse.
-        /// </value>
-        public float MaxMotorImpulse
+        private Vector3 localOffsetB;
+        public Vector3 LocalOffsetB
         {
-            get { return InternalHingeConstraint.MaxMotorImpulse; }
-            set { InternalHingeConstraint.MaxMotorImpulse = value; }
+            get => localOffsetB;
+            set
+            {
+                localOffsetB = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets the motor target velocity.
-        /// </summary>
-        /// <value>
-        /// The motor target velocity.
-        /// </value>
-        public float MotorTargetVelocity
+        private float springFrequency = 5;
+        public float SpringFrequency
         {
-            get { return InternalHingeConstraint.MotorTargetVelocity; }
+            get => springFrequency;
+            set
+            {
+                springFrequency = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets the solve limit.
-        /// </summary>
-        /// <value>
-        /// The solve limit.
-        /// </value>
-        public int SolveLimit
+        private float springDampingRatio = 2;
+        public float SpringDampingRatio
         {
-            get { return InternalHingeConstraint.SolveLimit; }
+            get => springDampingRatio;
+            set
+            {
+                springDampingRatio = value;
+
+                if (Simulation != null && Simulation.ConstraintExists(constraintHandle))
+                {
+                    Simulation.UpdateConstraint(constraintHandle, CreateDescription());
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets the lower limit.
-        /// </summary>
-        /// <value>
-        /// The lower limit.
-        /// </value>
-        public float LowerLimit
+        protected override void OnAttach()
         {
-            get { return InternalHingeConstraint.LowerLimit; }
+            base.OnAttach();
+
+            constraintHandle = Simulation.AddConstraint(BodyA.BodyHandle, BodyB.BodyHandle, CreateDescription());
         }
 
-        /// <summary>
-        /// Gets the upper limit.
-        /// </summary>
-        /// <value>
-        /// The upper limit.
-        /// </value>
-        public float UpperLimit
+        private BepuPhysics.Constraints.Hinge CreateDescription()
         {
-            get { return InternalHingeConstraint.UpperLimit; }
+            return new BepuPhysics.Constraints.Hinge()
+            {
+                LocalOffsetA = new System.Numerics.Vector3(LocalOffsetA.X, LocalOffsetA.Y, LocalOffsetA.Z),
+                LocalOffsetB = new System.Numerics.Vector3(LocalOffsetB.X, LocalOffsetB.Y, LocalOffsetB.Z),
+                LocalHingeAxisA = new System.Numerics.Vector3(LocalHingeAxisA.X, LocalHingeAxisA.Y, LocalHingeAxisA.Z),
+                LocalHingeAxisB = new System.Numerics.Vector3(LocalHingeAxisB.X, LocalHingeAxisB.Y, LocalHingeAxisB.Z),
+                SpringSettings = new BepuPhysics.Constraints.SpringSettings(SpringFrequency, SpringDampingRatio),
+            };
         }
 
-        /// <summary>
-        /// Gets the limit sign.
-        /// </summary>
-        /// <value>
-        /// The limit sign.
-        /// </value>
-        public float LimitSign
+        protected override void OnDetach()
         {
-            get { return InternalHingeConstraint.LimitSign; }
-        }
+            base.OnDetach();
 
-        /// <summary>
-        /// Sets the limit.
-        /// </summary>
-        /// <param name="low">The low.</param>
-        /// <param name="high">The high.</param>
-        public void SetLimit(float low, float high)
-        {
-            InternalHingeConstraint.SetLimit(low, high);
+            Simulation.RemoveConstraint(constraintHandle);
         }
-
-        /// <summary>
-        /// Sets the limit.
-        /// </summary>
-        /// <param name="low">The low.</param>
-        /// <param name="high">The high.</param>
-        /// <param name="softness">The softness.</param>
-        public void SetLimit(float low, float high, float softness)
-        {
-            InternalHingeConstraint.SetLimit(low, high, softness);
-        }
-
-        /// <summary>
-        /// Sets the limit.
-        /// </summary>
-        /// <param name="low">The low.</param>
-        /// <param name="high">The high.</param>
-        /// <param name="softness">The softness.</param>
-        /// <param name="biasFactor">The bias factor.</param>
-        public void SetLimit(float low, float high, float softness, float biasFactor)
-        {
-            InternalHingeConstraint.SetLimit(low, high, softness, biasFactor);
-        }
-
-        /// <summary>
-        /// Sets the limit.
-        /// </summary>
-        /// <param name="low">The low.</param>
-        /// <param name="high">The high.</param>
-        /// <param name="softness">The softness.</param>
-        /// <param name="biasFactor">The bias factor.</param>
-        /// <param name="relaxationFactor">The relaxation factor.</param>
-        public void SetLimit(float low, float high, float softness, float biasFactor, float relaxationFactor)
-        {
-            InternalHingeConstraint.SetLimit(low, high, softness, biasFactor, relaxationFactor);
-        }
-
-        /// <summary>
-        /// Enables the angular motor.
-        /// </summary>
-        /// <param name="enableMotor">if set to <c>true</c> [enable motor].</param>
-        /// <param name="targetVelocity">The target velocity.</param>
-        /// <param name="maxMotorImpulse">The maximum motor impulse.</param>
-        public void EnableAngularMotor(bool enableMotor, float targetVelocity, float maxMotorImpulse)
-        {
-            InternalHingeConstraint.EnableAngularMotor(enableMotor, targetVelocity, maxMotorImpulse);
-        }
-
-        /// <summary>
-        /// Enables the motor.
-        /// </summary>
-        /// <param name="enableMotor">if set to <c>true</c> [enable motor].</param>
-        public void EnableMotor(bool enableMotor)
-        {
-            InternalHingeConstraint.EnableMotor = enableMotor;
-        }
-
-        /// <summary>
-        /// Sets the motor target.
-        /// </summary>
-        /// <param name="targetAngle">The target angle.</param>
-        /// <param name="dt">The dt.</param>
-        public void SetMotorTarget(float targetAngle, float dt)
-        {
-            InternalHingeConstraint.SetMotorTarget(targetAngle, dt);
-        }
-
-        /// <summary>
-        /// Sets the motor target.
-        /// </summary>
-        /// <param name="qAinB">The q ain b.</param>
-        /// <param name="dt">The dt.</param>
-        public void SetMotorTarget(Quaternion qAinB, float dt)
-        {
-            InternalHingeConstraint.SetMotorTarget(qAinB, dt);
-        }
-
-        internal BulletSharp.HingeConstraint InternalHingeConstraint;
     }
 }

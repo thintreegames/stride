@@ -108,9 +108,9 @@ namespace Stride.VirtualReality
                             throw new ArgumentOutOfRangeException();
                     }
 
-                    if (Device != null)
+                    if (Device != null && Game is GameBase gameBase)
                     {
-                        Device.Game = Game;
+                        Device.Game = gameBase;
 
                         if (Device != null && !Device.CanInitialize)
                         {
@@ -133,12 +133,12 @@ postswitch:
                     Device.Enable(GraphicsDevice, deviceManager, RequireMirror, MirrorWidth, MirrorHeight);
                     physicalDeviceInUse = true;
                 }
-                else
+                else if (Game is GameBase gameBase)
                 {
                     //fallback to dummy device
                     Device = new DummyDevice(Services)
                     {
-                        Game = Game,
+                        Game = gameBase,
                         RenderFrameScaling = 1.0f,
                     };
                     Device.Enable(GraphicsDevice, deviceManager, RequireMirror, MirrorWidth, MirrorHeight);

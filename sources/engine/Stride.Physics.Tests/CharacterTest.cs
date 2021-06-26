@@ -55,7 +55,7 @@ namespace Stride.Physics.Tests
                 await game.Script.NextFrame();
 
                 var character = game.SceneSystem.SceneInstance.RootScene.Entities.First(ent => ent.Name == "Character");
-                var controller = character.Get<CharacterComponent>();
+                var controller = character.Get<CharacterControllerComponent>();
                 var simulation = controller.Simulation;
 
                 //let the controller land

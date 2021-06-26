@@ -53,19 +53,19 @@ namespace Stride.Engine
         {
             Services = registry;
 
-            graphicsDeviceService = Services.GetSafeServiceAs<IGraphicsDeviceService>();
+            graphicsDeviceService = Services.GetService<IGraphicsDeviceService>();
 
-            Game = Services.GetSafeServiceAs<IGame>();
-            Content = (ContentManager)Services.GetSafeServiceAs<IContentManager>();
-            Input = Services.GetSafeServiceAs<InputManager>();
-            Script = Services.GetSafeServiceAs<ScriptSystem>();
-            SceneSystem = Services.GetSafeServiceAs<SceneSystem>();
-            EffectSystem = Services.GetSafeServiceAs<EffectSystem>();
-            Audio = Services.GetSafeServiceAs<AudioSystem>();
-            SpriteAnimation = Services.GetSafeServiceAs<SpriteAnimationSystem>();
-            GameProfiler = Services.GetSafeServiceAs<GameProfilingSystem>();
-            DebugText = Services.GetSafeServiceAs<DebugTextSystem>();
-            Streaming = Services.GetSafeServiceAs<StreamingManager>();
+            Game = Services.GetService<IGame>();
+            Content = (ContentManager)Services.GetService<IContentManager>();
+            Input = Services.GetService<InputManager>();
+            Script = Services.GetService<ScriptSystem>();
+            SceneSystem = Services.GetService<SceneSystem>();
+            EffectSystem = Services.GetService<EffectSystem>();
+            Audio = Services.GetService<AudioSystem>();
+            SpriteAnimation = Services.GetService<SpriteAnimationSystem>();
+            GameProfiler = Services.GetService<GameProfilingSystem>();
+            DebugText = Services.GetService<DebugTextSystem>();
+            Streaming = Services.GetService<StreamingManager>();
         }
 
         /// <summary>

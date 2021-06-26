@@ -2,7 +2,10 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Stride.Core;
 using Stride.Core.Serialization.Contents;
 
@@ -40,7 +43,7 @@ namespace Stride.Physics
             return other.Shape == Shape;
         }
 
-        public ColliderShape CreateShape()
+        public ColliderShape CreateShape(Simulation simulation, ContentManager content)
         {
             if (Shape == null)
             {
@@ -49,10 +52,10 @@ namespace Stride.Physics
 
             if (Shape.Shape == null)
             {
-                Shape.Shape = PhysicsColliderShape.Compose(Shape.Descriptions);
+                Shape.Shape = PhysicsColliderShape.Compose(simulation, content, Shape.Descriptions);
             }
 
-            return this.Shape.Shape;
+            return Shape.Shape;
         }
     }
 }

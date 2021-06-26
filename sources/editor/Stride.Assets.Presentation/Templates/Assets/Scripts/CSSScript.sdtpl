@@ -1,0 +1,10 @@
+!TemplateAsset
+Id: 020E67F3-907D-4BD9-922E-6E60F843F2C8
+AssetTypeName: CSSFileAsset
+Name: Cascading Style Sheets
+Scope: Asset
+Description: A Cascading Style Sheets file
+Group: Script
+Order: -99
+Icon: ..\.sdtpl\SourceCode.png
+DefaultOutputName: CSS

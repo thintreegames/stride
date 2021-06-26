@@ -50,7 +50,8 @@ namespace Stride.Assets.Navigation
                     var collider = entity.Get<StaticColliderComponent>();
 
                     // Only process enabled colliders
-                    bool colliderEnabled = collider != null && ((CollisionFilterGroupFlags)collider.CollisionGroup & asset.IncludedCollisionGroups) != 0 && collider.Enabled;
+                    // TODO: Update navmesh to use the new collision types
+                    bool colliderEnabled = collider != null && collider.Enabled; //((CollisionFilterGroupFlags)collider.CollisionGroup & asset.IncludedCollisionGroups) != 0 && collider.Enabled;
                     if (colliderEnabled) // Removed or disabled
                     {
                         foreach (var desc in collider.ColliderShapes)
@@ -62,21 +63,6 @@ namespace Stride.Assets.Navigation
                                 if (assetReference != null)
                                 {
                                     yield return new ObjectUrl(UrlType.Content, assetReference.Url);
-                                }
-                            }
-                            else if (desc is HeightfieldColliderShapeDesc)
-                            {
-                                var heightfieldDesc = desc as HeightfieldColliderShapeDesc;
-                                var heightmapSource = heightfieldDesc?.HeightStickArraySource as HeightStickArraySourceFromHeightmap;
-
-                                if (heightmapSource?.Heightmap != null)
-                                {
-                                    var url = AttachedReferenceManager.GetUrl(heightmapSource.Heightmap);
-
-                                    if (!string.IsNullOrEmpty(url))
-                                    {
-                                        yield return new ObjectUrl(UrlType.Content, url);
-                                    }
                                 }
                             }
                         }
@@ -303,7 +289,8 @@ namespace Stride.Assets.Navigation
                                     Component = colliderComponent,
                                 });
 
-                                if (colliderComponent.Enabled && !colliderComponent.IsTrigger && ((int)asset.IncludedCollisionGroups & (int)colliderComponent.CollisionGroup) != 0)
+                                // TODO: NavMesh update collision to use collisiont types instead of groups
+                                if (colliderComponent.Enabled && !colliderComponent.GenerateOverlapEvents) //&& ((int)asset.IncludedCollisionGroups & (int)colliderComponent.CollisionGroup) != 0)
                                 {
                                     // Load collider shape assets since the scene asset is being used, which does not have these loaded by default
                                     foreach (var desc in colliderComponent.ColliderShapes)
@@ -319,23 +306,6 @@ namespace Stride.Assets.Navigation
                                                 loadedColliderShapes.Add(assetReference.Url, loadedColliderShape); // Store where we loaded the shapes from
                                             }
                                             shapeAssetDesc.Shape = loadedColliderShape;
-                                        }
-                                        else if (desc is HeightfieldColliderShapeDesc)
-                                        {
-                                            var heightfieldDesc = desc as HeightfieldColliderShapeDesc;
-                                            var heightmapSource = heightfieldDesc?.HeightStickArraySource as HeightStickArraySourceFromHeightmap;
-
-                                            if (heightmapSource?.Heightmap != null)
-                                            {
-                                                var assetReference = AttachedReferenceManager.GetAttachedReference(heightmapSource.Heightmap);
-                                                object loadedHeightfieldInitialData;
-                                                if (!loadedHeightfieldInitialDatas.TryGetValue(assetReference.Url, out loadedHeightfieldInitialData))
-                                                {
-                                                    loadedHeightfieldInitialData = contentManager.Load(typeof(Heightmap), assetReference.Url);
-                                                    loadedHeightfieldInitialDatas.Add(assetReference.Url, loadedHeightfieldInitialData);
-                                                }
-                                                heightmapSource.Heightmap = loadedHeightfieldInitialData as Heightmap;
-                                            }
                                         }
                                     }
                                 }

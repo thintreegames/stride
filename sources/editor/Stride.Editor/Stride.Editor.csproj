@@ -24,6 +24,7 @@
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
   </ItemGroup>
+	
   <ItemGroup>
     <ProjectReference Include="..\..\assets\Stride.Core.Assets.CompilerApp\Stride.Core.Assets.CompilerApp.csproj" />
     <ProjectReference Include="..\..\engine\Stride.Voxels\Stride.Voxels.csproj" />
