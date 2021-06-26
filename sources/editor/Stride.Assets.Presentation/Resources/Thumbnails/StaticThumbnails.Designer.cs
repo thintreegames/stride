@@ -73,6 +73,16 @@ namespace Stride.Assets.Presentation.Resources.Thumbnails {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        public static byte[] CSSThumbnail {
+            get {
+                object obj = ResourceManager.GetObject("CSSThumbnail", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         public static byte[] GameSettingsThumbnail {
             get {
                 object obj = ResourceManager.GetObject("GameSettingsThumbnail", resourceCulture);
@@ -86,6 +96,26 @@ namespace Stride.Assets.Presentation.Resources.Thumbnails {
         public static byte[] GraphicsCompositorThumbnail {
             get {
                 object obj = ResourceManager.GetObject("GraphicsCompositorThumbnail", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        public static byte[] HtmlThumbnail {
+            get {
+                object obj = ResourceManager.GetObject("HtmlThumbnail", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        public static byte[] JavaScriptThumbnail {
+            get {
+                object obj = ResourceManager.GetObject("JavaScriptThumbnail", resourceCulture);
                 return ((byte[])(obj));
             }
         }

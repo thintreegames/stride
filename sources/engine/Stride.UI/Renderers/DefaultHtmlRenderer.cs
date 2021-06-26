@@ -10,8 +10,6 @@ using Stride.Graphics;
 using Stride.UI.Controls;
 using Stride.UI.Engine;
 using TextCopy;
-using UltralightNet;
-using UltralightNet.AppCore;
 using Color = Stride.Core.Mathematics.Color;
 
 namespace Stride.UI.Renderers
@@ -37,7 +35,7 @@ namespace Stride.UI.Renderers
             var htmlControl = (HtmlControl)element;
             if (htmlControl == null) return;
 
-            if (htmlControl.SessionGuid == Guid.Empty)
+            if (htmlControl.SessionGuid == Guid.Empty && !string.IsNullOrEmpty(htmlControl.Url))
             {
                 htmlControl.SessionGuid = Guid.NewGuid();
                 uint width = (uint)context.Resolution.X;
@@ -45,6 +43,7 @@ namespace Stride.UI.Renderers
 
                 UltralightThreaded.CreateSession(htmlControl.SessionGuid, width, height);
                 UltralightThreaded.LoadUrl(htmlControl.SessionGuid, htmlControl.Url);
+                htmlControl.InitSession();
             }
 
             if (!UltralightThreaded.IsSessionReady(htmlControl.SessionGuid)) return;

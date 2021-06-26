@@ -1,0 +1,10 @@
+!TemplateAsset
+Id: 38D09EDF-B271-424B-8535-786789937296
+AssetTypeName: JavaScriptFileAsset
+Name: Javascript
+Scope: Asset
+Description: A javascript file
+Group: Script
+Order: -99
+Icon: ..\.sdtpl\SourceCode.png
+DefaultOutputName: Javascript

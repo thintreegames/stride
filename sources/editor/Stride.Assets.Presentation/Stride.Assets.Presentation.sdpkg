@@ -81,4 +81,6 @@ TemplateFolders:
         - !file Templates/Assets/Textures/DefaultRenderTexture.sdtpl
         - !file Templates/Assets/UI/Library.sdtpl
         - !file Templates/Assets/UI/Page.sdtpl
-        - !file Templates/Assets/UI/UltralightContent.sdtpl
+        - !file Templates/Assets/Scripts/HtmlScript.sdtpl
+        - !file Templates/Assets/Scripts/CSSScript.sdtpl
+        - !file Templates/Assets/Scripts/JavascriptScript.sdtpl.sdtpl

@@ -10,28 +10,25 @@ using System.Collections.Generic;
 using Stride.Assets.UI;
 using System.Text;
 using UltralightNet;
+using Stride.Core.Assets.TextAccessors;
+using System.Threading;
+using Stride.UI.Engine;
 
 namespace Stride.Editor.EditorGame.Game
 {
     public unsafe class EditorUltralightFileSystem : IUltralightFileSystem
     {
-        public struct FileHeader
-        {
-            public long FileSize;
-            public string FilePath;
-        }
-
         public SessionViewModel SessionView { get; set; }
 
         private static int LastFileID = 1;
 
-        private Dictionary<int, FileHeader> openFiles;
+        private Dictionary<int, FileStream> openFiles;
 
         private Dictionary<string, FileSystemWatcher> pathFileSystemWatchers;
 
         public EditorUltralightFileSystem()
         {
-            openFiles = new Dictionary<int, FileHeader>();
+            openFiles = new Dictionary<int, FileStream>();
             pathFileSystemWatchers = new Dictionary<string, FileSystemWatcher>();
         }
 
@@ -43,10 +40,10 @@ namespace Stride.Editor.EditorGame.Game
                 return 0;
             }
 
-            if (openFiles.TryGetValue(handle, out var fileHeader))
+            if (openFiles.TryGetValue(handle, out var fileStream))
             {
-                data = File.ReadAllBytes(fileHeader.FilePath);
-                return fileHeader.FileSize;
+                data = new byte[length];
+                return fileStream.Read(data, 0, (int)length);
             }
             else
             {
@@ -59,16 +56,31 @@ namespace Stride.Editor.EditorGame.Game
         {
             var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
 
-            if (assetViewModel == null || assetViewModel.Asset is not UltralightContentAsset ultralightContentAsset)
-            {
-                return 0;
-            }
+            if (assetViewModel == null) return 0;
 
-            FileInfo file = new FileInfo(ultralightContentAsset.Source.FullPath);
+            if (assetViewModel.Asset is not WebFileAsset webFileAsset) return 0;
 
             int fileID = LastFileID++;
 
-            var directory = Path.GetDirectoryName(ultralightContentAsset.Source.FullPath);
+            if (webFileAsset.TextAccessor is not DefaultTextAccessor defaultTextAccessor) return 0;
+
+            if (string.IsNullOrEmpty(defaultTextAccessor.FilePath)) return 0;
+
+            FileStream fileStream = null;
+            int timeoutLimit = 5;
+            for (int i = 0; i < timeoutLimit; i++)
+            {
+                if (AttemptFileOpen(new FileInfo(defaultTextAccessor.FilePath), out fileStream))
+                {
+                    break;
+                }
+
+                Thread.Sleep(100);
+            }
+
+            if (fileStream == null) return 0;
+
+            var directory = Path.GetDirectoryName(defaultTextAccessor.FilePath);
             if (!pathFileSystemWatchers.ContainsKey(directory))
             {
                 FileSystemWatcher fileSystemWatcher = new FileSystemWatcher(directory);
@@ -80,13 +92,23 @@ namespace Stride.Editor.EditorGame.Game
                 pathFileSystemWatchers.Add(directory, fileSystemWatcher);
             }
 
-            openFiles.Add(fileID, new FileHeader
-            {
-                FilePath = ultralightContentAsset.Source.FullPath,
-                FileSize = file.Length
-            });
+            openFiles.Add(fileID, fileStream);
 
             return fileID;
+        }
+
+        protected bool AttemptFileOpen(FileInfo file, out FileStream stream)
+        {
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None);
+                return true;
+            }
+            catch (IOException)
+            {
+                stream = null;
+                return false;
+            }
         }
 
         private void FileSystemWatcher_Changed(object sender, FileSystemEventArgs e)
@@ -96,7 +118,7 @@ namespace Stride.Editor.EditorGame.Game
                 return;
             }
 
-            //UltralightDefaults.HotReload?.Invoke();
+            UltralightThreaded.HotReload();
         }
 
         public bool GetFileSize(int fileHandle, out long result)
@@ -108,9 +130,9 @@ namespace Stride.Editor.EditorGame.Game
             }
             else
             {
-                if (openFiles.TryGetValue(fileHandle, out var fileHeader))
+                if (openFiles.TryGetValue(fileHandle, out var fileStream))
                 {
-                    result = fileHeader.FileSize;
+                    result = fileStream.Length;
                     return true;
                 }
 
@@ -126,6 +148,11 @@ namespace Stride.Editor.EditorGame.Game
                 return;
             }
 
+            if (openFiles.TryGetValue(handle, out var fileStream))
+            {
+                fileStream.Close();
+            }
+
             openFiles.Remove(handle);
         }
 
@@ -135,42 +162,26 @@ namespace Stride.Editor.EditorGame.Game
 
             var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
 
-            if (assetViewModel == null || assetViewModel.Asset is not UltralightContentAsset ultralightContentAsset)
+            if (assetViewModel == null)
             {
-                Methods.ulStringAssignCString(result, "");
+                Methods.ulStringAssignCString(result, string.Empty);
                 return false;
             }
 
-            string mimeType = string.Empty;
-            switch (Path.GetExtension(ultralightContentAsset.Source.FullPath).ToLower())
+            if (assetViewModel.Asset is WebFileAsset webFileAsset)
             {
-                case ".html":
-                    {
-                        Methods.ulStringAssignCString(result, "text/html");
-                        return true;
-                    }
-                case ".css":
-                    {
-                        Methods.ulStringAssignCString(result, "text/css");
-                        return true;
-                    }
-                case ".js":
-                    {
-                        Methods.ulStringAssignCString(result, "text/javascript");
-                        return true;
-                    }
-                default:
-                    {
-                        Methods.ulStringAssignCString(result, string.Empty);
-                        return false;
-                    }
+                Methods.ulStringAssignCString(result, webFileAsset.MimeType);
+                return true;
             }
+
+            Methods.ulStringAssignCString(result, string.Empty);
+            return false;
         }
 
         public bool FileExists(string path)
         {
             var assetViewModel = SessionView.AllAssets.FirstOrDefault(asset => asset.AssetItem.Location == path);
-            return assetViewModel != null && assetViewModel.Asset is UltralightContentAsset ultralightContentAsset;
+            return assetViewModel != null && assetViewModel.Asset is WebFileAsset webFileAsset;
         }
 
     }
