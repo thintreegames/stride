@@ -183,11 +183,5 @@ namespace Stride.Assets
         partial class UILibraryAsset
         {
         }
-
-
-        [Display((int)AssetDisplayPriority.UI + 100, "Ultralight Content")]
-        partial class UltralightContentAsset
-        {
-        }
     }
 }

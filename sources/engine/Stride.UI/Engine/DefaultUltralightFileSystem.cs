@@ -42,15 +42,15 @@ namespace Stride.UI
 
             if (openFiles.TryGetValue(handle, out var fileHeader))
             {
-                var rawAsset = Content.Get<UltralightContent>(fileHeader.ContentPath);
+                var webContent = Content.Get<WebContent>(fileHeader.ContentPath);
 
-                if (rawAsset == null)
+                if (webContent == null)
                 {
                     data = new byte[0];
                     return 0;
                 }
 
-                data = Encoding.UTF8.GetBytes(rawAsset.Content);
+                data = Encoding.UTF8.GetBytes(webContent.Content);
                 return data.Length;
             }
             else
@@ -67,7 +67,7 @@ namespace Stride.UI
                 return 0;
             }
 
-            Content.Load<UltralightContent>(path);
+            Content.Load<WebContent>(path);
 
             int fileID = LastFileID++;
             openFiles.Add(fileID, new FileHeader
@@ -89,15 +89,15 @@ namespace Stride.UI
             {
                 if (openFiles.TryGetValue(fileHandle, out var fileHeader))
                 {
-                    var rawAsset = Content.Get<UltralightContent>(fileHeader.ContentPath);
+                    var webContent = Content.Get<WebContent>(fileHeader.ContentPath);
 
-                    if (rawAsset == null)
+                    if (webContent == null)
                     {
                         result = 0;
                         return false;
                     }
 
-                    result = Encoding.UTF8.GetByteCount(rawAsset.Content);
+                    result = Encoding.UTF8.GetByteCount(webContent.Content);
                     return true;
                 }
 
@@ -122,15 +122,15 @@ namespace Stride.UI
         {
             var path = ULStringMarshaler.NativeToManaged(ptrPath);
 
-            var rawAsset = Content.Get<UltralightContent>(path);
+            var webContent = Content.Get<WebContent>(path);
 
-            if (rawAsset == null)
+            if (webContent == null)
             {
                 Methods.ulStringAssignCString(result, "");
                 return false;
             }
 
-            Methods.ulStringAssignCString(result, rawAsset.MimeType);
+            Methods.ulStringAssignCString(result, webContent.MimeType);
             return true;
         }
 
