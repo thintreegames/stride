@@ -51,8 +51,15 @@ namespace Stride.Assets
     {
     }
 
-    public class DefaultUltralightFactory : DefaultAssetFactory<UltralightContentAsset>
+    public class DefaultHtmlFactory : DefaultAssetFactory<HtmlFileAsset>
     {
+    }
 
+    public class DefaultCSSFactory : DefaultAssetFactory<CSSFileAsset>
+    {
+    }
+
+    public class DefaultJavaScriptFactory : DefaultAssetFactory<JavaScriptFileAsset>
+    {
     }
 }

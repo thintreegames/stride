@@ -121,11 +121,20 @@
   <data name="AnimationThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>AnimationThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="CSSThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>CSSThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="GameSettingsThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>GameSettingsThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="GraphicsCompositorThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>GraphicsCompositorThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="HtmlThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>HtmlThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="JavaScriptThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>JavaScriptThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="SceneThumbnail" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>SceneThumbnail.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
